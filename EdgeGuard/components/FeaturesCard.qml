@@ -6,7 +6,7 @@ import EdgeGuard
 Rectangle {
     id: root
     Layout.fillWidth: true
-    Layout.fillHeight: true   // مهم داخل RowLayout
+    Layout.fillHeight: true   //  RowLayout
     radius: 20
     color: Theme.panel
     border.color: Theme.borderSoft
@@ -43,7 +43,7 @@ Rectangle {
             }
         }
 
-        // ===== CONTENT (padding داخلي 16) =====
+        // ===== CONTENT =====
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
