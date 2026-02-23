@@ -14,7 +14,7 @@ Rectangle {
     border.color: Theme.borderSoft
     border.width: 1
 
-    // INNER SEGMENTED CONTAINER
+    // ===== SEGMENTED LEFT =====
     Rectangle {
         id: inner
         anchors.left: parent.left
@@ -51,7 +51,7 @@ Rectangle {
                            : "transparent"
 
                     border.width: root.currentIndex === index ? 1 : 0
-                    border.color: Theme.border
+                    border.color: Theme.borderSoft
 
                     Behavior on color {
                         ColorAnimation { duration: 120 }
@@ -70,7 +70,6 @@ Rectangle {
 
                     MouseArea {
                         anchors.fill: parent
-                        hoverEnabled: true
                         onClicked: {
                             root.currentIndex = index
                             root.motorChanged(index)
@@ -79,5 +78,15 @@ Rectangle {
                 }
             }
         }
+    }
+
+    // ===== LIGHT/DARK BUTTON RIGHT =====
+    Button {
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.rightMargin: 16
+
+        text: Theme.lightMode ? "Dark Mode" : "Light Mode"
+        onClicked: Theme.toggleMode()
     }
 }

@@ -1,17 +1,18 @@
 import QtQuick
 import QtQuick.Controls
+import EdgeGuard
 
 Rectangle {
     id: pill
     radius: 10
-    color: active ? Qt.rgba(1,1,1,0.06) : "transparent"
-    border.color: active ? Qt.rgba(1,1,1,0.14) : "transparent"
+    color: active ? Theme.panel : "transparent"
+    border.color: active ? Theme.borderSoft : "transparent"
     border.width: active ? 1 : 0
     implicitHeight: 32
 
     property string text: ""
     property bool active: false
-    property color activeTextColor: "#E6EDF3"
+    property color activeTextColor: Theme.text
 
     signal clicked()
 
@@ -26,6 +27,6 @@ Rectangle {
         text: pill.text
         font.pixelSize: 12
         font.weight: Font.DemiBold
-        color: pill.active ? pill.activeTextColor : "#8B949E"
+        color: pill.active ? pill.activeTextColor : Theme.text
     }
 }

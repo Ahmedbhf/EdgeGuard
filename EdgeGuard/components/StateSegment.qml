@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "."
+import EdgeGuard
 
 Item {
     id: root
@@ -17,7 +18,7 @@ Item {
 
         Label {
             text: "State"
-            color: "#C9D1D9"
+            color: Theme.text
             font.pixelSize: 12
         }
 
@@ -25,8 +26,8 @@ Item {
             Layout.fillWidth: true
             height: 44
             radius: 14
-            color: Qt.rgba(1,1,1,0.03)
-            border.color: Qt.rgba(1,1,1,0.10)
+            color: Theme.panel2
+            border.color: Theme.borderSoft
             border.width: 1
 
             RowLayout {
@@ -38,7 +39,7 @@ Item {
                     Layout.fillWidth: true
                     text: "OK"
                     active: root.state === "OK"
-                    activeTextColor: "#9BE9A8"
+                    activeTextColor: Theme.text
                     onClicked: {
                         if (!root.clickable) return
                         root.state = "OK"
@@ -50,7 +51,7 @@ Item {
                     Layout.fillWidth: true
                     text: "WARNING"
                     active: root.state === "WARNING"
-                    activeTextColor: "#FFD580"
+                    activeTextColor: Theme.text
                     onClicked: {
                         if (!root.clickable) return
                         root.state = "WARNING"
@@ -62,7 +63,7 @@ Item {
                     Layout.fillWidth: true
                     text: "FAULT"
                     active: root.state === "FAULT"
-                    activeTextColor: "#FF7B72"
+                    activeTextColor: Theme.text
                     onClicked: {
                         if (!root.clickable) return
                         root.state = "FAULT"

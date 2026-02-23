@@ -61,12 +61,12 @@ Rectangle {
                     columnSpacing: 18
                     rowSpacing: 18
 
-                    MetricCard { Layout.fillWidth: true; label: "RMS (g)"; value: "1.17" }
-                    MetricCard { Layout.fillWidth: true; label: "Peak2Peak (g)"; value: "4.68" }
-                    MetricCard { Layout.fillWidth: true; label: "Variance"; value: "0.30" }
-                    MetricCard { Layout.fillWidth: true; label: "Crest Factor"; value: "2.84" }
-                    MetricCard { Layout.fillWidth: true; label: "Temp (°C)"; value: "50.0" }
-                    MetricCard { Layout.fillWidth: true; label: "Temp Slope (°C/min)"; value: "0.08" }
+                    MetricCard { Layout.fillWidth: true; label: "RMS (g)"; value: dataModel.rms.toFixed(2) }
+                    MetricCard { Layout.fillWidth: true; label: "Peak2Peak (g)"; value: dataModel.peak2peak.toFixed(2) }
+                    MetricCard { Layout.fillWidth: true; label: "Variance"; value: dataModel.variance.toFixed(2) }
+                    MetricCard { Layout.fillWidth: true; label: "Crest Factor"; value: dataModel.crestFactor.toFixed(2) }
+                    MetricCard { Layout.fillWidth: true; label: "Temp (°C)"; value: dataModel.temp.toFixed(1) }
+                    MetricCard { Layout.fillWidth: true; label: "Temp Slope (°C/min)"; value: dataModel.tempSlope.toFixed(2) }
                 }
 
                 // ===== DIVIDER =====
@@ -97,7 +97,6 @@ Rectangle {
                     MetricCard { Layout.fillWidth: true; label: "σ Temp"; value: "1.20" }
                 }
 
-                // spacer يخلي المحتوى فوق وما يمدده
                 Item { Layout.fillHeight: true }
             }
         }

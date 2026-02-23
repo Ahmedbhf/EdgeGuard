@@ -10,7 +10,8 @@ ApplicationWindow {
     height: 1080
     visible: true
     color: Theme.bg
-
+    visibility: Window.Maximized
+    flags: Qt.Window
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spaceLg

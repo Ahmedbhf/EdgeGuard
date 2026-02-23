@@ -14,9 +14,10 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: 20
+        radius: Theme.radiusLg
         color: Theme.panel
         border.color: Theme.border
+        border.width: 1
 
         ColumnLayout {
             anchors.fill: parent
@@ -31,9 +32,9 @@ Item {
                 Label {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.left: parent.left
-                    anchors.leftMargin: 16
+                    anchors.leftMargin: Theme.spaceLg
                     text: "Anomaly & State"
-                    color: "white"
+                    color: Theme.text
                     font.bold: true
                 }
 
@@ -42,7 +43,7 @@ Item {
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
                     height: 1
-                    color: Theme.border
+                    color: Theme.borderSoft
                 }
             }
 
@@ -52,41 +53,37 @@ Item {
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 16
-                    spacing: 12
+                    anchors.margins: Theme.spaceLg
+                    spacing: Theme.spaceMd
 
                     MetricCard {
                         Layout.fillWidth: true
                         label: "Z-score (received)"
-                        value: "1.49"
+                        value: dataModel.zScore.toFixed(2)
                         sizeVariant: "large"
-
                     }
 
                     MetricCard {
                         Layout.fillWidth: true
-
                         label: "Threshold (received)"
-                        value: "1.17"
+                        value: threshold.toFixed(2)
                         sizeVariant: "large"
                     }
 
                     MetricCard {
                         Layout.fillWidth: true
-
                         label: "Window"
                         value: "6200"
                         sizeVariant: "large"
                     }
+
                     PersistenceBar {
-                         Layout.fillHeight: true
                         Layout.fillWidth: true
                         value: persistence
                         maxValue: 5
                     }
 
                     StateSegment {
-                         Layout.fillHeight: true
                         Layout.fillWidth: true
                         state: root.state
                         clickable: false

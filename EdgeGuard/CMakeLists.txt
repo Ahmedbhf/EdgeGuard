@@ -11,6 +11,7 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(appEdgeGuard
     main.cpp
+    backend/datamodel.cpp
 )
 
 set_source_files_properties(theme/Theme.qml
@@ -35,6 +36,8 @@ qt_add_qml_module(appEdgeGuard
         QML_FILES components/PersistenceBar.qml
         QML_FILES components/StateSegment.qml
         QML_FILES components/SegmentPill.qml
+        QML_FILES
+        SOURCES backend/datamodel.h backend/datamodel.cpp
 )
 
 target_link_libraries(appEdgeGuard
