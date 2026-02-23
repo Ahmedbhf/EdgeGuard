@@ -9,7 +9,7 @@ Rectangle {
     signal motorChanged(int index)
 
     height: 64
-    radius: 18
+    radius: 20
     color: Theme.panel
     border.color: Theme.borderSoft
     border.width: 1
@@ -47,7 +47,7 @@ Rectangle {
                     implicitWidth: label.implicitWidth + 32
 
                     color: root.currentIndex === index
-                           ? Theme.panel2
+                           ? Theme.primary
                            : "transparent"
 
                     border.width: root.currentIndex === index ? 1 : 0
@@ -64,7 +64,7 @@ Rectangle {
                         font.pixelSize: 14
                         font.bold: true
                         color: root.currentIndex === index
-                               ? Theme.text
+                               ? Theme.primaryFg
                                : Theme.muted
                     }
 
@@ -85,7 +85,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         anchors.rightMargin: 16
-
+        background:Theme.panel2
         text: Theme.lightMode ? "Dark Mode" : "Light Mode"
         onClicked: Theme.toggleMode()
     }

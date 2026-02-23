@@ -39,7 +39,7 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 height: 1
-                color: Qt.rgba(1,1,1,0.06)
+                color: Theme.borderSoft
             }
         }
 
@@ -73,7 +73,7 @@ Rectangle {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
-                    color: Qt.rgba(1,1,1,0.05)
+                    color: Theme.borderSoft
                 }
 
 

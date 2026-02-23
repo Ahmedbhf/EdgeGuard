@@ -85,7 +85,7 @@ ApplicationWindow {
 
                     Rectangle {
                         Layout.fillWidth: true
-                        height: 320
+                        height: 200
                         radius: 18
                         color: Theme.panel
                         border.color: Theme.borderSoft

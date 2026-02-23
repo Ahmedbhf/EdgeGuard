@@ -33,6 +33,8 @@ QtObject {
     readonly property color ok: lightMode ? "#16a34a" : "#86efac"
     readonly property color warning: lightMode ? "#d97706" : "#fcd34d"
     readonly property color fault: lightMode ? "#dc2626" : "#fca5a5"
+    readonly property color primary: lightMode ? "#0865FF" : "#0865FF"
+    readonly property color primaryFg: lightMode ? "#fff" : "#fff"
     // ===== RADIUS =====
     readonly property int radiusLg: 14
     readonly property int radiusMd: 12
