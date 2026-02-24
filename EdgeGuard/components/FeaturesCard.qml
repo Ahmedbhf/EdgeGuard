@@ -7,7 +7,7 @@ Rectangle {
     id: root
     Layout.fillWidth: true
     Layout.fillHeight: true   //  RowLayout
-    radius: 20
+    radius: 16
     color: Theme.panel
     border.color: Theme.borderSoft
     border.width: 1

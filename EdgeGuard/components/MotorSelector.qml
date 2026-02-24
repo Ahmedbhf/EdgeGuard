@@ -9,7 +9,7 @@ Rectangle {
     signal motorChanged(int index)
 
     height: 64
-    radius: 20
+    radius: 16
     color: Theme.panel
     border.color: Theme.borderSoft
     border.width: 1

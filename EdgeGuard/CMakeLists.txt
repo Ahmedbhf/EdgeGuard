@@ -38,6 +38,8 @@ qt_add_qml_module(appEdgeGuard
         QML_FILES components/SegmentPill.qml
         QML_FILES
         SOURCES backend/datamodel.h backend/datamodel.cpp
+        QML_FILES components/RawSignals.qml
+        QML_FILES components/SignalChart.qml
 )
 
 target_link_libraries(appEdgeGuard

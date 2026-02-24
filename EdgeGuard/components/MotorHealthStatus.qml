@@ -28,6 +28,7 @@ Item {
                 Layout.fillWidth: true
                 height: 48
                 color: "transparent"
+                radius:16
 
                 Label {
                     anchors.verticalCenter: parent.verticalCenter

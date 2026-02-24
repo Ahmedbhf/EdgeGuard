@@ -57,14 +57,13 @@ ApplicationWindow {
                         spacing: Theme.spaceLg
                         Layout.alignment: Qt.AlignTop
 
-                        Rectangle {
+                        RawSignals {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             Layout.horizontalStretchFactor: 2
                             Layout.minimumWidth: 500
-                            radius: 20
-                            color: Theme.panel
-                            border.color: Theme.borderSoft
+
+
                         }
 
                         FeaturesCard {
