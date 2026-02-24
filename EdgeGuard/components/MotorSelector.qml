@@ -36,7 +36,7 @@ Rectangle {
             spacing: 4
 
             Repeater {
-                model: ["Motor A", "Motor B"]
+                model: ["Machine: Edge Unit"]
 
                 delegate: Rectangle {
                     required property int index
