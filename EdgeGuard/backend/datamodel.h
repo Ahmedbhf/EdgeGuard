@@ -2,6 +2,7 @@
 #define DATAMODEL_H
 
 #include <QObject>
+#include <QVector>
 
 class DataModel : public QObject
 {
@@ -15,6 +16,10 @@ class DataModel : public QObject
     Q_PROPERTY(double tempSlope READ tempSlope NOTIFY dataChanged)
     Q_PROPERTY(double zScore READ zScore NOTIFY dataChanged)
 
+    // New properties for charts
+    Q_PROPERTY(QVector<double> vibrationValues READ vibrationValues NOTIFY vibrationValuesChanged)
+    Q_PROPERTY(QVector<double> temperatureValues READ temperatureValues NOTIFY temperatureValuesChanged)
+
 public:
     explicit DataModel(QObject *parent = nullptr);
 
@@ -26,11 +31,15 @@ public:
     double tempSlope() const;
     double zScore() const;
 
+    QVector<double> vibrationValues() const { return m_vibrationValues; }
+    QVector<double> temperatureValues() const { return m_temperatureValues; }
 
     Q_INVOKABLE void updateRaw(double x, double y, double z);
 
 signals:
     void dataChanged();
+    void vibrationValuesChanged();
+    void temperatureValuesChanged();
 
 private:
     void compute();
@@ -50,6 +59,11 @@ private:
     double m_meanRms;
     double m_stdRms;
     double m_zScore;
+
+    // Signal history
+    QVector<double> m_vibrationValues;
+    QVector<double> m_temperatureValues;
+    const int MAX_HISTORY = 2000;
 };
 
 #endif
