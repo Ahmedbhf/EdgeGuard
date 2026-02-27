@@ -7,9 +7,9 @@ Rectangle {
     property string title: "Edge Maintenance Monitor"
 
     // status values (later from backend)
-    property string uartStatus: "UART: SIM"
+    property string uartStatus: "UART: Connected"
     property string wifiStatus: "WiFi Bridge: Off"
-    property string sourceMode: "Source Mode: SIM"
+    property string sourceMode: "Source Mode: UART"
 
     // layout responsiveness
     property bool compact: width < 1100
@@ -61,17 +61,12 @@ Rectangle {
 
                 Chip {
                     text: root.uartStatus
-                    stateType: "warning"
-                }
-
-                Chip {
-                    text: root.wifiStatus
                     stateType: "neutral"
                 }
 
                 Chip {
                     text: root.sourceMode
-                    stateType: "warning"
+                    stateType: "neutral"
                 }
             }
         }
