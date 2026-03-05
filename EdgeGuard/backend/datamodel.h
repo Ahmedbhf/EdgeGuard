@@ -3,6 +3,9 @@
 
 #include <QObject>
 #include <QVector>
+#include <QSerialPort>
+#include <QSerialPortInfo>
+#include <QTimer>
 
 class DataModel : public QObject
 {
@@ -16,9 +19,16 @@ class DataModel : public QObject
     Q_PROPERTY(double tempSlope READ tempSlope NOTIFY dataChanged)
     Q_PROPERTY(double zScore READ zScore NOTIFY dataChanged)
 
-    // New properties for charts
+    // Chart history
     Q_PROPERTY(QVector<double> vibrationValues READ vibrationValues NOTIFY vibrationValuesChanged)
     Q_PROPERTY(QVector<double> temperatureValues READ temperatureValues NOTIFY temperatureValuesChanged)
+
+    // Serial port state
+    Q_PROPERTY(bool connected READ connected NOTIFY connectedChanged)
+    Q_PROPERTY(QStringList availablePorts READ availablePorts NOTIFY availablePortsChanged)
+    Q_PROPERTY(QString currentPort READ currentPort NOTIFY connectedChanged)
+    Q_PROPERTY(int motorId READ motorId NOTIFY dataChanged)
+    Q_PROPERTY(int motorStatus READ motorStatus NOTIFY dataChanged)
 
 public:
     explicit DataModel(QObject *parent = nullptr);
@@ -34,16 +44,44 @@ public:
     QVector<double> vibrationValues() const { return m_vibrationValues; }
     QVector<double> temperatureValues() const { return m_temperatureValues; }
 
-    Q_INVOKABLE void updateRaw(double x, double y, double z);
+    bool connected() const;
+    QStringList availablePorts() const;
+    QString currentPort() const;
+    int motorId() const;
+    int motorStatus() const;
+
+    Q_INVOKABLE void connectToPort(const QString &portName);
+    Q_INVOKABLE void disconnectPort();
+    Q_INVOKABLE void refreshPorts();
 
 signals:
     void dataChanged();
     void vibrationValuesChanged();
     void temperatureValuesChanged();
+    void connectedChanged();
+    void availablePortsChanged();
+    void serialError(const QString &message);
+
+private slots:
+    void onReadyRead();
+    void onSerialError(QSerialPort::SerialPortError error);
+    void onTimeoutTick();
 
 private:
+    void processLine(const QByteArray &line);
     void compute();
 
+    // Serial
+    QSerialPort *m_serial;
+    QByteArray m_readBuffer;
+    QTimer *m_timeoutTimer;
+    QTimer *m_uiTimer;
+
+    // Parsed fields
+    int m_motorId;
+    int m_motorStatus;
+
+    // Accel / computed
     double m_x;
     double m_y;
     double m_z;

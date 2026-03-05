@@ -5,7 +5,11 @@ project(EdgeGuard VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick)
+find_package(Qt6 REQUIRED COMPONENTS
+    Quick
+    SerialPort
+    Charts
+)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -15,8 +19,7 @@ qt_add_executable(appEdgeGuard
 )
 
 set_source_files_properties(theme/Theme.qml
-    PROPERTIES
-        QT_QML_SINGLETON_TYPE TRUE
+    PROPERTIES QT_QML_SINGLETON_TYPE TRUE
 )
 
 qt_add_qml_module(appEdgeGuard
@@ -28,22 +31,27 @@ qt_add_qml_module(appEdgeGuard
         components/AppHeader.qml
         components/Chip.qml
         components/ActionButton.qml
+        components/MotorSelector.qml
+        components/MetricCard.qml
+        components/FeaturesCard.qml
+        components/MotorHealthStatus.qml
+        components/PersistenceBar.qml
+        components/StateSegment.qml
+        components/SegmentPill.qml
+        components/RawSignals.qml
+        components/SignalChart.qml
         theme/Theme.qml
-        QML_FILES components/MotorSelector.qml
-        QML_FILES components/MetricCard.qml
-        QML_FILES components/FeaturesCard.qml
-        QML_FILES components/MotorHealthStatus.qml
-        QML_FILES components/PersistenceBar.qml
-        QML_FILES components/StateSegment.qml
-        QML_FILES components/SegmentPill.qml
-        QML_FILES
-        SOURCES backend/datamodel.h backend/datamodel.cpp
-        QML_FILES components/RawSignals.qml
-        QML_FILES components/SignalChart.qml
+
+    SOURCES
+        backend/datamodel.h
+        backend/datamodel.cpp
 )
 
 target_link_libraries(appEdgeGuard
-    PRIVATE Qt6::Quick
+    PRIVATE
+        Qt6::Quick
+        Qt6::SerialPort
+        Qt6::Charts
 )
 
 set_target_properties(appEdgeGuard PROPERTIES
@@ -52,6 +60,7 @@ set_target_properties(appEdgeGuard PROPERTIES
 )
 
 include(GNUInstallDirs)
+
 install(TARGETS appEdgeGuard
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
