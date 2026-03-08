@@ -61,7 +61,7 @@ Rectangle {
                     columnSpacing: 18
                     rowSpacing: 18
 
-                    MetricCard { Layout.fillWidth: true; label: "RMS (g)"; value: dataModel.rms.toFixed(2) }
+                    MetricCard { Layout.fillWidth: true; label: "RMS (mg)"; value: dataModel.rms.toFixed(2) }
                     MetricCard { Layout.fillWidth: true; label: "Peak2Peak (g)"; value: dataModel.peak2peak.toFixed(2) }
                     MetricCard { Layout.fillWidth: true; label: "Variance"; value: dataModel.variance.toFixed(2) }
                     MetricCard { Layout.fillWidth: true; label: "Crest Factor"; value: dataModel.crestFactor.toFixed(2) }
