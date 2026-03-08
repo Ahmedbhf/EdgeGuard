@@ -296,7 +296,15 @@ double DataModel::zScore() const      { return m_zScore; }
 
 void DataModel::compute()
 {
-    m_rms = std::sqrt((m_x*m_x + m_y*m_y + m_z*m_z) / 3.0);
+    // Remove DC component (gravity / offset)
+    double mean = (m_x + m_y + m_z) / 3.0;
+
+    double x_ac = m_x - mean;
+    double y_ac = m_y - mean;
+    double z_ac = m_z - mean;
+
+    // Global vibration magnitude
+    m_rms = std::sqrt((x_ac*x_ac + y_ac*y_ac + z_ac*z_ac) / 3.0);
 
     if (m_stdRms != 0)
         m_zScore = (m_rms - m_meanRms) / m_stdRms;
@@ -305,7 +313,7 @@ void DataModel::compute()
 
     m_peak2peak = std::max({m_x, m_y, m_z}) - std::min({m_x, m_y, m_z});
 
-    m_variance = (m_x*m_x + m_y*m_y + m_z*m_z) / 3.0 - (m_rms * m_rms);
+    m_variance = (x_ac*x_ac + y_ac*y_ac + z_ac*z_ac) / 3.0 - (m_rms * m_rms);
 
     if (m_rms != 0)
         m_crestFactor = m_peak2peak / m_rms;
