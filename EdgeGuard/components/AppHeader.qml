@@ -83,18 +83,6 @@ Rectangle {
             }
 
             ActionButton {
-                text: root.compact ? "" : "Disconnect"
-                toolTip: "Disconnect"
-                onClicked: root.disconnectClicked()
-            }
-
-            ActionButton {
-                text: root.compact ? "" : "Reset View"
-                toolTip: "Reset View"
-                onClicked: root.resetViewClicked()
-            }
-
-            ActionButton {
                 text: "Export CSV"
                 primary: true
                 onClicked: root.exportCsvClicked()

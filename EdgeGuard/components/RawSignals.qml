@@ -50,7 +50,7 @@ Rectangle {
             spacing: 20
 
             // =========================
-            // VIBRATION CARD
+            // VIBRATION (RMS) CARD
             // =========================
             Rectangle {
                 Layout.fillWidth: true
@@ -70,8 +70,9 @@ Rectangle {
                         Layout.fillWidth: true
 
                         Label {
-                            text: "Vibration"
+                            text: "Vibration (RMS)"
                             color: Theme.text
+                            font.weight: Font.DemiBold
                         }
 
                         Item { Layout.fillWidth: true }
@@ -81,12 +82,12 @@ Rectangle {
                                 var totalSamples = vibChart.values.length + vibChart.discardedSamples
                                 var inBuffer = vibChart.values.length
                                 var display = Math.min(inBuffer, vibChart.displayPoints)
-                                return "Samples received: " + totalSamples.toLocaleString(Qt.locale(), "d") +
-                                       " | In buffer: " + inBuffer +
-                                       " | Display: " + display
+                                return "Samples: " + totalSamples.toLocaleString(Qt.locale(), "d") +
+                                       " | Buffer: " + inBuffer +
+                                       " | View: " + display
                             }
                             color: Theme.muted
-                            font.pixelSize: 12
+                            font.pixelSize: 11
                         }
                     }
 
@@ -94,8 +95,9 @@ Rectangle {
                         id: vibChart
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        unit: "g"
+                        unit: "mg"
                         displayPoints: 60
+                             // Dynamic max based on data
                     }
                 }
             }
@@ -123,6 +125,7 @@ Rectangle {
                         Label {
                             text: "Temperature"
                             color: Theme.text
+                            font.weight: Font.DemiBold
                         }
 
                         Item { Layout.fillWidth: true }
@@ -132,12 +135,12 @@ Rectangle {
                                 var totalSamples = tempChart.values.length + tempChart.discardedSamples
                                 var inBuffer = tempChart.values.length
                                 var display = Math.min(inBuffer, tempChart.displayPoints)
-                                return "Samples received: " + totalSamples.toLocaleString(Qt.locale(), "d") +
-                                       " | In buffer: " + inBuffer +
-                                       " | Display: " + display
+                                return "Samples: " + totalSamples.toLocaleString(Qt.locale(), "d") +
+                                       " | Buffer: " + inBuffer +
+                                       " | View: " + display
                             }
                             color: Theme.muted
-                            font.pixelSize: 12
+                            font.pixelSize: 11
                         }
                     }
 
@@ -147,6 +150,8 @@ Rectangle {
                         Layout.fillHeight: true
                         unit: "°C"
                         displayPoints: 60
+                          // Dynamic max based on data
+                        lineColor: "#F59E0B"
                     }
                 }
             }
@@ -154,11 +159,9 @@ Rectangle {
 
         // ===== CONNECT TO C++ MODEL =====
         Component.onCompleted: {
-            // Initial connection - get the data from C++
             vibChart.values = dataModel.vibrationValues
             tempChart.values = dataModel.temperatureValues
 
-            // Listen for updates from C++ model
             dataModel.vibrationValuesChanged.connect(function() {
                 vibChart.values = dataModel.vibrationValues
             })

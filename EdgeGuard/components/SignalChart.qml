@@ -11,20 +11,35 @@ Rectangle {
     border.width: 1
     clip: true
 
+    // ===== EXISTING API =====
     property var values: []
     property string unit: ""
     property int displayPoints: 60
     property color lineColor: Theme.primary
-    property int topPadding: 24
-    property int bottomPadding: 24
 
-    // Dynamic min/max based on data
-    property real calculatedMinY: 0.0
-    property real calculatedMaxY: 1.0
+    // ===== Sample rate for time axis =====
+    property real sampleRateHz: 10.0
 
-    // Track total samples ever received
+    // ===== Y-axis: min fixed, max dynamic =====
+    property real fixedMinY: 0.0
+    property real fixedMaxY: -1        // -1 means auto-calculate
+    property real calculatedMaxY: 1.0  // Computed from data
+
+    // ===== Chart margins =====
+    property int leftMargin: 56
+    property int rightMargin: 16
+    property int topMargin: 20
+    property int bottomMargin: 28
+
+    // ===== Track total samples =====
     property int discardedSamples: 0
     property int lastValueCount: 0
+
+    // The actual max used for drawing
+    readonly property real effectiveMaxY: {
+        if (fixedMaxY > 0) return fixedMaxY
+        return calculatedMaxY
+    }
 
     Canvas {
         id: canvas
@@ -36,34 +51,143 @@ Rectangle {
             ctx.reset()
             ctx.clearRect(0, 0, width, height)
 
-            var chartWidth = width
-            var chartHeight = height - root.topPadding - root.bottomPadding
+            var chartLeft = root.leftMargin
+            var chartRight = width - root.rightMargin
+            var chartTop = root.topMargin
+            var chartBottom = height - root.bottomMargin
+            var chartWidth = chartRight - chartLeft
+            var chartHeight = chartBottom - chartTop
 
-            // Draw faint horizontal center line
-            ctx.strokeStyle = Theme.border
+            if (chartWidth <= 0 || chartHeight <= 0)
+                return
+
+            // Use fixed min + effective max
+            var minY = root.fixedMinY
+            var maxY = root.effectiveMaxY
+            var rangeY = maxY - minY
+            if (rangeY === 0) rangeY = 1
+
+            var midY = minY + rangeY / 2.0
+            var totalTimeSec = root.displayPoints / root.sampleRateHz
+
+            // ============================
+            // 1. BACKGROUND FILL
+            // ============================
+            ctx.fillStyle = Theme.panel3
+            ctx.fillRect(chartLeft, chartTop, chartWidth, chartHeight)
+
+            // ============================
+            // 2. HORIZONTAL GRID LINES
+            // ============================
+            var hGridValues = [minY, midY, maxY]
+
+            ctx.strokeStyle = Theme.borderSoft
+            ctx.lineWidth = 1
+
+            for (var h = 0; h < hGridValues.length; h++) {
+                var normalizedH = (hGridValues[h] - minY) / rangeY
+                var gridY = chartBottom - (normalizedH * chartHeight)
+
+                ctx.beginPath()
+                ctx.setLineDash([2, 4])
+                ctx.moveTo(chartLeft, gridY)
+                ctx.lineTo(chartRight, gridY)
+                ctx.stroke()
+            }
+            ctx.setLineDash([])
+
+            // ============================
+            // 3. VERTICAL GRID LINES (time)
+            // ============================
+            var timeStepSec = 1.0
+            if (totalTimeSec > 12) timeStepSec = 3.0
+            else if (totalTimeSec > 6) timeStepSec = 2.0
+
+            var numTimeMarkers = Math.floor(totalTimeSec / timeStepSec)
+
+            ctx.strokeStyle = Theme.borderSoft
+            ctx.lineWidth = 1
+
+            for (var t = 0; t <= numTimeMarkers; t++) {
+                var timeSec = t * timeStepSec
+                var sampleIndex = timeSec * root.sampleRateHz
+                var vx = chartLeft + (sampleIndex / root.displayPoints) * chartWidth
+
+                if (vx >= chartLeft && vx <= chartRight) {
+                    ctx.beginPath()
+                    ctx.setLineDash([2, 4])
+                    ctx.moveTo(vx, chartTop)
+                    ctx.lineTo(vx, chartBottom)
+                    ctx.stroke()
+                }
+            }
+            ctx.setLineDash([])
+
+            // ============================
+            // 4. CHART BORDER
+            // ============================
+            ctx.strokeStyle = Theme.borderSoft
             ctx.lineWidth = 1
             ctx.beginPath()
-            ctx.moveTo(0, height / 2)
-            ctx.lineTo(width, height / 2)
+            ctx.rect(chartLeft, chartTop, chartWidth, chartHeight)
             ctx.stroke()
 
+            // ============================
+            // 5. Y AXIS LABELS (left side with unit)
+            // ============================
+            ctx.fillStyle = Theme.muted
+            ctx.font = "10px sans-serif"
+            ctx.textAlign = "right"
+            ctx.textBaseline = "middle"
+
+            ctx.fillText(maxY.toFixed(1) + " " + root.unit, chartLeft - 6, chartTop)
+            ctx.fillText(midY.toFixed(1) + " " + root.unit, chartLeft - 6, chartTop + chartHeight / 2)
+            ctx.fillText(minY.toFixed(1) + " " + root.unit, chartLeft - 6, chartBottom)
+
+            // ============================
+            // 6. X AXIS LABELS (time)
+            // ============================
+            ctx.fillStyle = Theme.muted
+            ctx.font = "10px sans-serif"
+            ctx.textAlign = "center"
+            ctx.textBaseline = "top"
+
+            for (var tx = 0; tx <= numTimeMarkers; tx++) {
+                var tSec = tx * timeStepSec
+                var tSampleIdx = tSec * root.sampleRateHz
+                var labelX = chartLeft + (tSampleIdx / root.displayPoints) * chartWidth
+                var labelTimeSec = -(totalTimeSec - tSec)
+
+                var label = ""
+                if (Math.abs(labelTimeSec) < 0.01) {
+                    label = "Now"
+                } else {
+                    label = labelTimeSec.toFixed(0) + "s"
+                }
+
+                if (labelX >= chartLeft && labelX <= chartRight) {
+                    ctx.fillText(label, labelX, chartBottom + 6)
+                }
+            }
+
+            // ============================
+            // 7. DRAW SIGNAL LINE
+            // ============================
             if (!root.values || root.values.length === 0)
                 return
 
-            // Use calculated min/max from data
-            var rangeY = root.calculatedMaxY - root.calculatedMinY
-            if (rangeY === 0) rangeY = 1
-
-            // Only show the last displayPoints
             var start = Math.max(0, root.values.length - root.displayPoints)
             var count = Math.min(root.values.length, root.displayPoints)
-
-            // Spacing between points
             var stepX = chartWidth / Math.max(1, (root.displayPoints - 1))
 
-            // Draw the Signal Line
-            ctx.strokeStyle = root.lineColor
-            ctx.lineWidth = 2
+            // Glow effect
+            ctx.strokeStyle = Qt.rgba(
+                root.lineColor.r,
+                root.lineColor.g,
+                root.lineColor.b,
+                0.15
+            )
+            ctx.lineWidth = 6
             ctx.lineJoin = "round"
             ctx.lineCap = "round"
             ctx.beginPath()
@@ -72,13 +196,41 @@ Rectangle {
             var lastY = 0
             var isFirstPoint = true
 
+            for (var g = 0; g < count; g++) {
+                var gValue = root.values[start + g]
+                var gClamped = Math.max(minY, Math.min(maxY, gValue))
+                var gNorm = (gClamped - minY) / rangeY
+
+                var gx = chartLeft + (g * stepX)
+                var gy = chartBottom - (gNorm * chartHeight)
+
+                if (isFirstPoint) {
+                    ctx.moveTo(gx, gy)
+                    isFirstPoint = false
+                } else {
+                    ctx.lineTo(gx, gy)
+                }
+
+                lastX = gx
+                lastY = gy
+            }
+            ctx.stroke()
+
+            // Main signal line
+            ctx.strokeStyle = root.lineColor
+            ctx.lineWidth = 2
+            ctx.lineJoin = "round"
+            ctx.lineCap = "round"
+            ctx.beginPath()
+
+            isFirstPoint = true
             for (var i = 0; i < count; i++) {
                 var value = root.values[start + i]
-                var clampedValue = Math.max(root.calculatedMinY, Math.min(root.calculatedMaxY, value))
-                var normalized = (clampedValue - root.calculatedMinY) / rangeY
+                var clampedValue = Math.max(minY, Math.min(maxY, value))
+                var normalized = (clampedValue - minY) / rangeY
 
-                var x = (i * stepX)
-                var y = root.topPadding + chartHeight - (normalized * chartHeight)
+                var x = chartLeft + (i * stepX)
+                var y = chartBottom - (normalized * chartHeight)
 
                 if (isFirstPoint) {
                     ctx.moveTo(x, y)
@@ -92,79 +244,81 @@ Rectangle {
             }
             ctx.stroke()
 
-            // Draw the live moving dot at the end
+            // ============================
+            // 8. LIVE VALUE + DOT
+            // ============================
             if (count > 0) {
+                // Outer glow
+                ctx.fillStyle = Qt.rgba(
+                    root.lineColor.r,
+                    root.lineColor.g,
+                    root.lineColor.b,
+                    0.25
+                )
+                ctx.beginPath()
+                ctx.arc(lastX, lastY, 8, 0, 2 * Math.PI)
+                ctx.fill()
+
+                // Inner dot
                 ctx.fillStyle = root.lineColor
                 ctx.beginPath()
                 ctx.arc(lastX, lastY, 4, 0, 2 * Math.PI)
                 ctx.fill()
+
+                // White center
+                ctx.fillStyle = "#FFFFFF"
+                ctx.beginPath()
+                ctx.arc(lastX, lastY, 1.5, 0, 2 * Math.PI)
+                ctx.fill()
+
+                // Live value label above dot
+                var liveValue = root.values[start + count - 1]
+                ctx.fillStyle = root.lineColor
+                ctx.font = "bold 11px sans-serif"
+                ctx.textAlign = "center"
+                ctx.textBaseline = "bottom"
+                ctx.fillText(liveValue.toFixed(2) + " " + root.unit, lastX, lastY - 12)
             }
         }
     }
 
-    // Dynamic min/max labels
-    Text {
-        text: root.calculatedMaxY.toFixed(2)
-        color: Theme.muted
-        font.pixelSize: 10
-        anchors.top: parent.top
-        anchors.right: parent.right
-        anchors.margins: 8
-    }
-
-    Text {
-        text: root.calculatedMinY.toFixed(2)
-        color: Theme.muted
-        font.pixelSize: 10
-        anchors.bottom: parent.bottom
-        anchors.right: parent.right
-        anchors.margins: 8
-    }
-
-    Text {
-        text: root.unit
-        color: Theme.muted
-        font.pixelSize: 10
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.margins: 8
-    }
-
-    // Calculate min/max from data with padding
-    function updateMinMax() {
+    // ===== Auto-calculate max from data =====
+    function updateDynamicMax() {
         if (!root.values || root.values.length === 0) {
-            root.calculatedMinY = 0
-            root.calculatedMaxY = 1
+            root.calculatedMaxY = 1.0
             return
         }
 
-        var min = root.values[0]
         var max = root.values[0]
 
-        // Find actual min/max in data
         for (var i = 0; i < root.values.length; i++) {
-            if (root.values[i] < min) min = root.values[i]
             if (root.values[i] > max) max = root.values[i]
         }
 
-        // Add 15% padding above and below
-        var padding = (max - min) * 0.15
-        if (padding === 0) padding = 1 // Prevent zero range
+        // Round up to nice number with 20% padding
+        var padded = max * 1.2
 
-        root.calculatedMinY = min - padding
-        root.calculatedMaxY = max + padding
+        // Round to nearest nice value
+        if (padded <= 1) padded = 1
+        else if (padded <= 2) padded = 2
+        else if (padded <= 5) padded = 5
+        else if (padded <= 10) padded = 10
+        else if (padded <= 20) padded = 20
+        else if (padded <= 50) padded = 50
+        else if (padded <= 100) padded = 100
+        else if (padded <= 200) padded = 200
+        else padded = Math.ceil(padded / 50) * 50
 
-        canvas.requestPaint()
+        root.calculatedMaxY = padded
     }
 
     onValuesChanged: {
-        // Track discarded samples
         if (root.values.length < root.lastValueCount) {
-            // Values were removed (buffer overflow)
             root.discardedSamples += (root.lastValueCount - root.values.length)
         }
         root.lastValueCount = root.values.length
 
-        updateMinMax()
+        updateDynamicMax()
+        canvas.requestPaint()
     }
 }

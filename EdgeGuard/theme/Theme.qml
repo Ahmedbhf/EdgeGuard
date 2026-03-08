@@ -18,7 +18,7 @@ QtObject {
 
     readonly property color panel: lightMode ? "#ffffff" : "#111113"
     readonly property color panel2: lightMode ? "#f8fafc" : "#16161a"
-
+    readonly property color panel3: lightMode ? "#fafafa" : "#11111a"
     readonly property color border: lightMode ? "#dedede" : "#27272a"
     readonly property color borderSoft: lightMode ? "#e5e7eb" : "#202024"
 

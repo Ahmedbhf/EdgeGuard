@@ -1,19 +1,24 @@
 #include "datamodel.h"
 #include <cmath>
 #include <QDebug>
+#include <QRandomGenerator>
 
 DataModel::DataModel(QObject *parent)
     : QObject(parent),
     m_serial(new QSerialPort(this)),
     m_timeoutTimer(new QTimer(this)),
     m_uiTimer(new QTimer(this)),
+    m_simTimer(new QTimer(this)),
+    m_simulationMode(false),
+    m_simTime(0),
     m_motorId(0),
     m_motorStatus(0),
     m_x(0), m_y(0), m_z(0),
     m_rms(0), m_peak2peak(0), m_variance(0), m_crestFactor(0),
-    m_temp(0), m_tempSlope(0), m_lastTemp(0),
+    m_temp(40), m_tempSlope(0), m_lastTemp(40),
     m_zScore(0), m_meanRms(1.10), m_stdRms(0.15)
 {
+    // ── UART connections (kept for hardware) ────────────────────────
     connect(m_serial, &QSerialPort::readyRead, this, &DataModel::onReadyRead);
     connect(m_serial, &QSerialPort::errorOccurred, this, &DataModel::onSerialError);
 
@@ -27,12 +32,102 @@ DataModel::DataModel(QObject *parent)
     connect(m_uiTimer, &QTimer::timeout, this, [this]() {
         emit dataChanged();
     });
+
+    // ── Simulation timer (for testing without hardware) ─────────────
+    connect(m_simTimer, &QTimer::timeout, this, &DataModel::onSimulationTick);
+
+    // Auto-start simulation since no hardware is available
+    startSimulation();
 }
 
-// ── Serial port management ──────────────────────────────────────────
+// ── Simulation ──────────────────────────────────────────────────────
+
+void DataModel::startSimulation()
+{
+    // Stop UART if it was running
+    // if (m_serial->isOpen())
+    //     m_serial->close();
+    // m_timeoutTimer->stop();
+
+    m_simulationMode = true;
+    m_simTime = 0;
+    m_simTimer->start(100);   // 10 Hz — same rate as STM32
+    m_uiTimer->start();
+    emit simulationModeChanged();
+    emit connectedChanged();
+    qDebug() << "Simulation started (10 Hz)";
+}
+
+void DataModel::stopSimulation()
+{
+    m_simulationMode = false;
+    m_simTimer->stop();
+    m_uiTimer->stop();
+    emit simulationModeChanged();
+    emit connectedChanged();
+    qDebug() << "Simulation stopped";
+}
+
+bool DataModel::simulationMode() const
+{
+    return m_simulationMode;
+}
+
+void DataModel::onSimulationTick()
+{
+    m_simTime += 0.1;  // 100ms per tick
+
+    // ── Simulate accelerometer data ─────────────────────────────────
+    // Realistic vibration: sine waves + noise (mimics motor vibration)
+    double noise = (QRandomGenerator::global()->bounded(1000) - 500) / 1000.0;  // -0.5 to 0.5
+
+    m_x = 0.3 * std::sin(m_simTime * 5.0)            // 5 Hz base vibration
+          + 0.15 * std::sin(m_simTime * 12.0)           // 12 Hz harmonic
+          + noise * 0.4;                                  // Random noise
+
+    m_y = 0.25 * std::cos(m_simTime * 5.0 + 0.5)
+          + 0.1 * std::sin(m_simTime * 8.0)
+          + noise * 0.3;
+
+    m_z = 0.2 * std::sin(m_simTime * 5.0 + 1.0)
+          + 0.1 * std::cos(m_simTime * 15.0)
+          + noise * 0.35;
+
+    // ── Simulate temperature ────────────────────────────────────────
+    // Slow drift around 42°C with minor fluctuations
+    m_temp = 42.0
+             + 3.0 * std::sin(m_simTime * 0.05)          // Very slow drift
+             + (QRandomGenerator::global()->bounded(100) - 50) / 100.0;  // ±0.5 noise
+
+    // ── Simulate motor ID and status ────────────────────────────────
+    m_motorId = 1;
+    m_motorStatus = 0;  // 0 = OK
+
+    // ── Compute derived metrics ─────────────────────────────────────
+    compute();
+
+    // ── Append to chart history (same as UART path) ─────────────────
+    m_vibrationValues.append(m_rms);
+    if (m_vibrationValues.size() > MAX_HISTORY)
+        m_vibrationValues.removeFirst();
+    emit vibrationValuesChanged();
+
+    m_temperatureValues.append(m_temp);
+    if (m_temperatureValues.size() > MAX_HISTORY)
+        m_temperatureValues.removeFirst();
+    emit temperatureValuesChanged();
+}
+
+// ── Serial port management (COMMENTED OUT — kept for hardware) ──────
+// Uncomment these and remove startSimulation() from constructor
+// when connecting real STM32 hardware.
 
 void DataModel::connectToPort(const QString &portName)
 {
+    // ── Stop simulation if running ──────────────────────────────────
+    if (m_simulationMode)
+        stopSimulation();
+
     if (m_serial->isOpen())
         m_serial->close();
 
@@ -51,6 +146,8 @@ void DataModel::connectToPort(const QString &portName)
         emit connectedChanged();
     } else {
         emit serialError(m_serial->errorString());
+        // Fall back to simulation if UART fails
+        startSimulation();
     }
 }
 
@@ -64,6 +161,9 @@ void DataModel::disconnectPort()
         qDebug() << "Serial disconnected";
         emit connectedChanged();
     }
+
+    // Optionally restart simulation after disconnect
+    // startSimulation();
 }
 
 void DataModel::refreshPorts()
@@ -73,7 +173,7 @@ void DataModel::refreshPorts()
 
 bool DataModel::connected() const
 {
-    return m_serial->isOpen();
+    return m_serial->isOpen() || m_simulationMode;
 }
 
 QStringList DataModel::availablePorts() const
@@ -86,13 +186,15 @@ QStringList DataModel::availablePorts() const
 
 QString DataModel::currentPort() const
 {
+    if (m_simulationMode)
+        return QStringLiteral("SIM");
     return m_serial->portName();
 }
 
 int DataModel::motorId() const     { return m_motorId; }
 int DataModel::motorStatus() const { return m_motorStatus; }
 
-// ── Data reception ──────────────────────────────────────────────────
+// ── Data reception (UART — kept intact for hardware) ────────────────
 
 void DataModel::onReadyRead()
 {
@@ -168,8 +270,9 @@ void DataModel::onSerialError(QSerialPort::SerialPortError error)
     emit serialError(msg);
 
     if (error == QSerialPort::ResourceError) {
-        // Device unplugged
+        // Device unplugged — fall back to simulation
         disconnectPort();
+        startSimulation();
     }
 }
 

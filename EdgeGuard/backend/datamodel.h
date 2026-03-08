@@ -30,6 +30,9 @@ class DataModel : public QObject
     Q_PROPERTY(int motorId READ motorId NOTIFY dataChanged)
     Q_PROPERTY(int motorStatus READ motorStatus NOTIFY dataChanged)
 
+    // Simulation mode flag
+    Q_PROPERTY(bool simulationMode READ simulationMode NOTIFY simulationModeChanged)
+
 public:
     explicit DataModel(QObject *parent = nullptr);
 
@@ -49,10 +52,13 @@ public:
     QString currentPort() const;
     int motorId() const;
     int motorStatus() const;
+    bool simulationMode() const;
 
     Q_INVOKABLE void connectToPort(const QString &portName);
     Q_INVOKABLE void disconnectPort();
     Q_INVOKABLE void refreshPorts();
+    Q_INVOKABLE void startSimulation();
+    Q_INVOKABLE void stopSimulation();
 
 signals:
     void dataChanged();
@@ -61,11 +67,13 @@ signals:
     void connectedChanged();
     void availablePortsChanged();
     void serialError(const QString &message);
+    void simulationModeChanged();
 
 private slots:
     void onReadyRead();
     void onSerialError(QSerialPort::SerialPortError error);
     void onTimeoutTick();
+    void onSimulationTick();
 
 private:
     void processLine(const QByteArray &line);
@@ -76,6 +84,11 @@ private:
     QByteArray m_readBuffer;
     QTimer *m_timeoutTimer;
     QTimer *m_uiTimer;
+
+    // Simulation
+    QTimer *m_simTimer;
+    bool m_simulationMode;
+    double m_simTime;
 
     // Parsed fields
     int m_motorId;
