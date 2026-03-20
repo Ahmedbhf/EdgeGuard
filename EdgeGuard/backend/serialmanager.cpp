@@ -87,20 +87,11 @@ void SerialManager::onTimeout() { emit errorOccurred(QStringLiteral("No data rec
 void SerialManager::processLine(const QByteArray &line)
 {
     const auto fields = line.split(',');
-    if (fields.size() == 6) {
-        bool okStatus = false, okX = false, okY = false, okZ = false, okTemp = false;
-        const int status = fields[1].trimmed().toInt(&okStatus);
-        const double x = fields[2].trimmed().toDouble(&okX), y = fields[3].trimmed().toDouble(&okY);
-        const double z = fields[4].trimmed().toDouble(&okZ), temp = fields[5].trimmed().toDouble(&okTemp);
-        if (!okStatus || !okX || !okY || !okZ || !okTemp) return;
-        emit packetReceived(x, y, z, temp, QString(), status);
-        return;
-    }
     if (fields.size() != 5) return;
-    bool okX = false, okY = false, okZ = false, okTemp = false;
+    bool okX = false, okY = false, okZ = false, okTemp = false, okStatus = false;
     const double x = fields[0].trimmed().toDouble(&okX), y = fields[1].trimmed().toDouble(&okY);
     const double z = fields[2].trimmed().toDouble(&okZ), temp = fields[3].trimmed().toDouble(&okTemp);
-    const QString state = QString::fromUtf8(fields[4]).trimmed();
-    if (!okX || !okY || !okZ || !okTemp || state.isEmpty()) return;
-    emit packetReceived(x, y, z, temp, state, -1);
+    const int status = fields[4].trimmed().toInt(&okStatus);
+    if (!okX || !okY || !okZ || !okTemp || !okStatus) return;
+    emit packetReceived(x, y, z, temp, QString(), status);
 }
