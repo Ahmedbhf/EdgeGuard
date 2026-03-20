@@ -2,30 +2,23 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import EdgeGuard
+
 Rectangle {
     id: root
     property string title: "Edge Maintenance Monitor"
-
-    // status values (later from backend)
-    property string uartStatus: "UART: Connected"
-    property string wifiStatus: "WiFi Bridge: Off"
-    property string sourceMode: "Source Mode: UART"
-
-    // layout responsiveness
     property bool compact: width < 1100
 
-    signal connectClicked()
-    signal disconnectClicked()
-    signal resetViewClicked()
+    signal connectionToggled()
     signal exportCsvClicked()
+    signal refreshClicked()
+    signal themeToggleClicked()
 
-    height:  64
+    height: 64
     radius: 0
     color: Theme.panel
     border.color: Theme.borderSoft
     border.width: 1
 
-    // subtle top highlight
     Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
@@ -41,7 +34,6 @@ Rectangle {
         anchors.margins: 16
         spacing: 16
 
-        // LEFT: title
         Text {
             text: root.title
             color: Theme.text
@@ -51,7 +43,6 @@ Rectangle {
             Layout.maximumWidth: root.compact ? 220 : 360
         }
 
-        // MIDDLE: chips (wrap when narrow)
         Item {
             Layout.fillWidth: true
 
@@ -60,31 +51,36 @@ Rectangle {
                 spacing: 8
 
                 Chip {
-                    text: root.uartStatus
-                    stateType: "neutral"
-                }
-
-                Chip {
-                    text: root.sourceMode
-                    stateType: "neutral"
+                    text: dataModel.connected ? "UART: Connected (" + dataModel.currentPort + ")" : "UART: Disconnected"
+                    stateType: dataModel.connected ? "ok" : "neutral"
                 }
             }
         }
-        // RIGHT: actions
+
         RowLayout {
             spacing: 8
             Layout.alignment: Qt.AlignVCenter
 
-            // in compact mode, show icons only (still clickable)
             ActionButton {
-                text: root.compact ? "" : "Connect UART"
-                toolTip: "Connect UART"
-                onClicked: root.connectClicked()
+                text: "Refresh"
+                onClicked: root.refreshClicked()
+            }
+
+            ActionButton {
+                text: Theme.lightMode ? "Dark Mode" : "Light Mode"
+                onClicked: root.themeToggleClicked()
+            }
+
+            ActionButton {
+                text: root.compact ? "" : (dataModel.connected ? "Disconnect" : "Connect UART")
+                enabled: dataModel.connected || dataModel.selectedPort.length > 0
+                onClicked: root.connectionToggled()
             }
 
             ActionButton {
                 text: "Export CSV"
                 primary: true
+                enabled: dataModel.csvFilePath.length > 0
                 onClicked: root.exportCsvClicked()
             }
         }

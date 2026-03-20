@@ -8,7 +8,7 @@ Item {
     id: root
     implicitHeight: 60
 
-    property string state: "OK"   // OK | WARNING | FAULT
+    property string state: "OK"
     property bool clickable: false
     signal statePicked(string newState)
 
@@ -24,7 +24,7 @@ Item {
 
         Rectangle {
             Layout.fillWidth: true
-            height: 44
+            height: 48
             radius: 14
             color: Theme.panel2
             border.color: Theme.borderSoft
@@ -39,7 +39,9 @@ Item {
                     Layout.fillWidth: true
                     text: "OK"
                     active: root.state === "OK"
-                    activeTextColor: Theme.text
+                    activeFillColor: Theme.panel
+                    activeBorderColor: Theme.ok
+                    activeTextColor: Theme.ok
                     onClicked: {
                         if (!root.clickable) return
                         root.state = "OK"
@@ -49,24 +51,14 @@ Item {
 
                 SegmentPill {
                     Layout.fillWidth: true
-                    text: "WARNING"
-                    active: root.state === "WARNING"
-                    activeTextColor: Theme.text
+                    text: "ANOMALY"
+                    active: root.state === "ANOMALY"
+                    activeFillColor: Theme.panel
+                    activeBorderColor: Theme.warning
+                    activeTextColor: Theme.warning
                     onClicked: {
                         if (!root.clickable) return
-                        root.state = "WARNING"
-                        root.statePicked(root.state)
-                    }
-                }
-
-                SegmentPill {
-                    Layout.fillWidth: true
-                    text: "FAULT"
-                    active: root.state === "FAULT"
-                    activeTextColor: Theme.text
-                    onClicked: {
-                        if (!root.clickable) return
-                        root.state = "FAULT"
+                        root.state = "ANOMALY"
                         root.statePicked(root.state)
                     }
                 }

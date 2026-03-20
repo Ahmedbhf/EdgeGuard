@@ -5,13 +5,15 @@ import EdgeGuard
 Rectangle {
     id: pill
     radius: 10
-    color: active ? Theme.panel : "transparent"
-    border.color: active ? Theme.borderSoft : "transparent"
+    color: active ? activeFillColor : "transparent"
+    border.color: active ? activeBorderColor : "transparent"
     border.width: active ? 1 : 0
     implicitHeight: 32
 
     property string text: ""
     property bool active: false
+    property color activeFillColor: Theme.panel
+    property color activeBorderColor: Theme.borderSoft
     property color activeTextColor: Theme.text
 
     signal clicked()

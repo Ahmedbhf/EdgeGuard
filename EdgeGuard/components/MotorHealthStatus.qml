@@ -6,11 +6,35 @@ import EdgeGuard
 Item {
     id: root
     implicitHeight: 420
+    property var lastSampleTime: null
+    property int refreshTick: 0
+    readonly property string lastUpdateText: {
+        refreshTick
+        if (!lastSampleTime)
+            return "Waiting for data"
 
-    property real zScore: 0.0
-    property real threshold: 3.0
-    property int persistence: 0
-    property string state: "OK"
+        var seconds = Math.floor((new Date().getTime() - lastSampleTime.getTime()) / 1000)
+        if (seconds <= 1)
+            return "Just now"
+
+        return seconds + " s ago"
+    }
+
+    Timer {
+        interval: 1000
+        repeat: true
+        running: true
+        onTriggered: root.refreshTick++
+    }
+
+    Connections {
+        target: dataModel
+
+        function onDataChanged() {
+            root.lastSampleTime = new Date()
+            root.refreshTick = 0
+        }
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -23,12 +47,11 @@ Item {
             anchors.fill: parent
             spacing: 0
 
-            // ===== Header =====
             Rectangle {
                 Layout.fillWidth: true
                 height: 48
                 color: "transparent"
-                radius:16
+                radius: 16
 
                 Label {
                     anchors.verticalCenter: parent.verticalCenter
@@ -55,39 +78,103 @@ Item {
                 ColumnLayout {
                     anchors.fill: parent
                     anchors.margins: Theme.spaceLg
-                    spacing: Theme.spaceMd
+                    spacing: Theme.spaceLg
 
                     MetricCard {
                         Layout.fillWidth: true
-                        label: "Z-score (received)"
-                        value: dataModel.zScore.toFixed(2)
+                        label: "Anomaly Score"
+                        value: dataModel.variance.toFixed(2)
                         sizeVariant: "large"
                     }
 
-                    MetricCard {
+                    Rectangle {
                         Layout.fillWidth: true
-                        label: "Threshold (received)"
-                        value: threshold.toFixed(2)
-                        sizeVariant: "large"
+                        Layout.preferredHeight: 88
+                        radius: Theme.radiusMd
+                        color: Theme.panel2
+                        border.color: Theme.borderSoft
+                        border.width: 1
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: Theme.spaceLg
+                            spacing: Theme.spaceSm
+
+                            Label {
+                                text: "Last Update"
+                                color: Theme.muted
+                                font.pixelSize: 12
+                            }
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: root.lastUpdateText
+                                color: Theme.text
+                                font.pixelSize: 20
+                                font.weight: Font.DemiBold
+                                wrapMode: Text.WordWrap
+                            }
+                        }
                     }
 
-                    MetricCard {
+                    Rectangle {
                         Layout.fillWidth: true
-                        label: "Window"
-                        value: "6200"
-                        sizeVariant: "large"
-                    }
+                        Layout.fillHeight: true
+                        Layout.preferredHeight: 150
+                        radius: Theme.radiusMd
+                        color: Theme.panel2
+                        border.color: Theme.borderSoft
+                        border.width: 1
 
-                    PersistenceBar {
-                        Layout.fillWidth: true
-                        value: persistence
-                        maxValue: 5
-                    }
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: Theme.spaceLg
+                            spacing: Theme.spaceMd
 
-                    StateSegment {
-                        Layout.fillWidth: true
-                        state: root.state
-                        clickable: false
+                            Label {
+                                text: "State"
+                                color: Theme.muted
+                                font.pixelSize: 12
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                Layout.preferredHeight: 52
+                                radius: 12
+                                color: dataModel.state === "OK" ? Theme.ok : Theme.panel
+                                border.color: dataModel.state === "OK" ? Qt.lighter(Theme.ok, 1.2) : Theme.borderSoft
+                                border.width: 1
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "OK"
+                                    color: dataModel.state === "OK" ? Theme.primaryFg : Theme.muted
+                                    opacity: dataModel.state === "OK" ? 1.0 : 0.7
+                                    font.pixelSize: 14
+                                    font.weight: Font.DemiBold
+                                }
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                Layout.preferredHeight: 52
+                                radius: 12
+                                color: dataModel.state === "ANOMALY" ? Theme.fault : Theme.panel
+                                border.color: dataModel.state === "ANOMALY" ? Qt.lighter(Theme.fault, 1.15) : Theme.borderSoft
+                                border.width: 1
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "ANOMALY"
+                                    color: dataModel.state === "ANOMALY" ? Theme.primaryFg : Theme.muted
+                                    opacity: dataModel.state === "ANOMALY" ? 1.0 : 0.7
+                                    font.pixelSize: 14
+                                    font.weight: Font.DemiBold
+                                }
+                            }
+                        }
                     }
                 }
             }

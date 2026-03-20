@@ -16,6 +16,12 @@ Rectangle {
     property string unit: ""
     property int displayPoints: 60
     property color lineColor: Theme.primary
+    readonly property bool isDarkMode: !Theme.lightMode
+    readonly property color effectiveLineColor: isDarkMode ? Qt.lighter(lineColor, 1.15) : Qt.darker(lineColor, 1.25)
+    readonly property color chartBackgroundColor: isDarkMode ? Theme.panel3 : "#ffffff"
+    readonly property color chartGridColor: isDarkMode ? "#2a2a2f" : "#d1d5db"
+    readonly property color axisTextColor: isDarkMode ? Theme.text : "#374151"
+    readonly property color chartBorderColor: isDarkMode ? Theme.borderSoft : "#d1d5db"
 
     // ===== Sample rate for time axis =====
     property real sampleRateHz: 10.0
@@ -73,7 +79,7 @@ Rectangle {
             // ============================
             // 1. BACKGROUND FILL
             // ============================
-            ctx.fillStyle = Theme.panel3
+            ctx.fillStyle = root.chartBackgroundColor
             ctx.fillRect(chartLeft, chartTop, chartWidth, chartHeight)
 
             // ============================
@@ -81,7 +87,7 @@ Rectangle {
             // ============================
             var hGridValues = [minY, midY, maxY]
 
-            ctx.strokeStyle = Theme.borderSoft
+            ctx.strokeStyle = root.chartGridColor
             ctx.lineWidth = 1
 
             for (var h = 0; h < hGridValues.length; h++) {
@@ -105,7 +111,7 @@ Rectangle {
 
             var numTimeMarkers = Math.floor(totalTimeSec / timeStepSec)
 
-            ctx.strokeStyle = Theme.borderSoft
+            ctx.strokeStyle = root.chartGridColor
             ctx.lineWidth = 1
 
             for (var t = 0; t <= numTimeMarkers; t++) {
@@ -126,7 +132,7 @@ Rectangle {
             // ============================
             // 4. CHART BORDER
             // ============================
-            ctx.strokeStyle = Theme.borderSoft
+            ctx.strokeStyle = root.chartBorderColor
             ctx.lineWidth = 1
             ctx.beginPath()
             ctx.rect(chartLeft, chartTop, chartWidth, chartHeight)
@@ -135,7 +141,7 @@ Rectangle {
             // ============================
             // 5. Y AXIS LABELS (left side with unit)
             // ============================
-            ctx.fillStyle = Theme.muted
+            ctx.fillStyle = root.axisTextColor
             ctx.font = "10px sans-serif"
             ctx.textAlign = "right"
             ctx.textBaseline = "middle"
@@ -147,7 +153,7 @@ Rectangle {
             // ============================
             // 6. X AXIS LABELS (time)
             // ============================
-            ctx.fillStyle = Theme.muted
+            ctx.fillStyle = root.axisTextColor
             ctx.font = "10px sans-serif"
             ctx.textAlign = "center"
             ctx.textBaseline = "top"
@@ -182,9 +188,9 @@ Rectangle {
 
             // Glow effect
             ctx.strokeStyle = Qt.rgba(
-                root.lineColor.r,
-                root.lineColor.g,
-                root.lineColor.b,
+                root.effectiveLineColor.r,
+                root.effectiveLineColor.g,
+                root.effectiveLineColor.b,
                 0.15
             )
             ctx.lineWidth = 6
@@ -217,7 +223,7 @@ Rectangle {
             ctx.stroke()
 
             // Main signal line
-            ctx.strokeStyle = root.lineColor
+            ctx.strokeStyle = root.effectiveLineColor
             ctx.lineWidth = 2
             ctx.lineJoin = "round"
             ctx.lineCap = "round"
@@ -250,9 +256,9 @@ Rectangle {
             if (count > 0) {
                 // Outer glow
                 ctx.fillStyle = Qt.rgba(
-                    root.lineColor.r,
-                    root.lineColor.g,
-                    root.lineColor.b,
+                    root.effectiveLineColor.r,
+                    root.effectiveLineColor.g,
+                    root.effectiveLineColor.b,
                     0.25
                 )
                 ctx.beginPath()
@@ -260,20 +266,20 @@ Rectangle {
                 ctx.fill()
 
                 // Inner dot
-                ctx.fillStyle = root.lineColor
+                ctx.fillStyle = root.effectiveLineColor
                 ctx.beginPath()
                 ctx.arc(lastX, lastY, 4, 0, 2 * Math.PI)
                 ctx.fill()
 
-                // White center
-                ctx.fillStyle = "#FFFFFF"
+                // Center uses chart background so the marker stays readable in both themes.
+                ctx.fillStyle = root.chartBackgroundColor
                 ctx.beginPath()
                 ctx.arc(lastX, lastY, 1.5, 0, 2 * Math.PI)
                 ctx.fill()
 
                 // Live value label above dot
                 var liveValue = root.values[start + count - 1]
-                ctx.fillStyle = root.lineColor
+                ctx.fillStyle = root.effectiveLineColor
                 ctx.font = "bold 11px sans-serif"
                 ctx.textAlign = "center"
                 ctx.textBaseline = "bottom"
@@ -321,4 +327,10 @@ Rectangle {
         updateDynamicMax()
         canvas.requestPaint()
     }
+
+    onEffectiveLineColorChanged: canvas.requestPaint()
+    onChartBackgroundColorChanged: canvas.requestPaint()
+    onChartGridColorChanged: canvas.requestPaint()
+    onAxisTextColorChanged: canvas.requestPaint()
+    onChartBorderColorChanged: canvas.requestPaint()
 }

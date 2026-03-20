@@ -74,21 +74,6 @@ Rectangle {
                             color: Theme.text
                             font.weight: Font.DemiBold
                         }
-
-                        Item { Layout.fillWidth: true }
-
-                        Label {
-                            text: {
-                                var totalSamples = vibChart.values.length + vibChart.discardedSamples
-                                var inBuffer = vibChart.values.length
-                                var display = Math.min(inBuffer, vibChart.displayPoints)
-                                return "Samples: " + totalSamples.toLocaleString(Qt.locale(), "d") +
-                                       " | Buffer: " + inBuffer +
-                                       " | View: " + display
-                            }
-                            color: Theme.muted
-                            font.pixelSize: 11
-                        }
                     }
 
                     SignalChart {
@@ -126,21 +111,6 @@ Rectangle {
                             text: "Temperature"
                             color: Theme.text
                             font.weight: Font.DemiBold
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        Label {
-                            text: {
-                                var totalSamples = tempChart.values.length + tempChart.discardedSamples
-                                var inBuffer = tempChart.values.length
-                                var display = Math.min(inBuffer, tempChart.displayPoints)
-                                return "Samples: " + totalSamples.toLocaleString(Qt.locale(), "d") +
-                                       " | Buffer: " + inBuffer +
-                                       " | View: " + display
-                            }
-                            color: Theme.muted
-                            font.pixelSize: 11
                         }
                     }
 

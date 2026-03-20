@@ -15,7 +15,6 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(appEdgeGuard
     main.cpp
-    backend/datamodel.cpp
 )
 
 set_source_files_properties(theme/Theme.qml
@@ -35,7 +34,6 @@ qt_add_qml_module(appEdgeGuard
         components/MetricCard.qml
         components/FeaturesCard.qml
         components/MotorHealthStatus.qml
-        components/PersistenceBar.qml
         components/StateSegment.qml
         components/SegmentPill.qml
         components/RawSignals.qml
@@ -45,6 +43,8 @@ qt_add_qml_module(appEdgeGuard
     SOURCES
         backend/datamodel.h
         backend/datamodel.cpp
+        backend/serialmanager.h
+        backend/serialmanager.cpp
 )
 
 target_link_libraries(appEdgeGuard

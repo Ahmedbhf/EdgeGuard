@@ -16,8 +16,8 @@ Rectangle {
     property string value: ""
     property string sizeVariant: "normal"
 
-    property int valueSize: sizeVariant === "large" ? 40 : 18
-    property int labelSize: sizeVariant === "large" ? 14 : 12
+    property int valueSize: sizeVariant === "feature" ? 34 : (sizeVariant === "hero" ? 48 : (sizeVariant === "large" ? 40 : 18))
+    property int labelSize: sizeVariant === "feature" ? 12 : (sizeVariant === "hero" ? 15 : (sizeVariant === "large" ? 14 : 12))
 
     implicitHeight: content.implicitHeight + Theme.spaceLg * 2
 
@@ -25,7 +25,7 @@ Rectangle {
         id: content
         anchors.fill: parent
         anchors.margins: Theme.spaceLg
-        spacing: sizeVariant === "large" ? 8 : 6
+        spacing: sizeVariant === "normal" ? 6 : 8
 
         Text {
             text: root.label
