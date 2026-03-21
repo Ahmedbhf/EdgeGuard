@@ -59,17 +59,22 @@ Rectangle {
                     spacing: 12
 
                     Label {
-                        text: "RMS Vibration"
-                        color: Theme.text
-                        font.weight: Font.DemiBold
+                        text: "RMS Vibration (mg)"
+                        color: Theme.lightMode ? "#4b5563" : "#d2d7df"
+                        font.weight: Font.Bold
                     }
 
                     LiveTrendChart {
                         id: rmsChart
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        values: dataModel.vibrationValues
                         unit: "mg"
-                        displayPoints: 60
+                        showUnitLabel: false
+                        displayPoints: 300
+                        sampleRateHz: 20.0
+                        lineColor: "#86BBFF"
+                        anomalyActive: dataModel.state === "ANOMALY"
                     }
                 }
             }
@@ -89,35 +94,26 @@ Rectangle {
                     spacing: 12
 
                     Label {
-                        text: "Temperature"
-                        color: Theme.text
-                        font.weight: Font.DemiBold
+                        text: "Temperature (\u00B0C)"
+                        color: Theme.lightMode ? "#4b5563" : "#d2d7df"
+                        font.weight: Font.Bold
                     }
 
                     LiveTrendChart {
                         id: temperatureChart
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        unit: "°C"
-                        displayPoints: 60
-                        lineColor: "#F59E0B"
+                        values: dataModel.temperatureValues
+                        unit: "\u00B0C"
+                        showUnitLabel: false
+                        displayPoints: 300
+                        sampleRateHz: 20.0
+                        lineColor: "#F6AD55"
+                        anomalyActive: dataModel.state === "ANOMALY"
                     }
                 }
             }
         }
 
-    }
-
-    Component.onCompleted: {
-        rmsChart.values = dataModel.vibrationValues
-        temperatureChart.values = dataModel.temperatureValues
-
-        dataModel.vibrationValuesChanged.connect(function() {
-            rmsChart.values = dataModel.vibrationValues
-        })
-
-        dataModel.temperatureValuesChanged.connect(function() {
-            temperatureChart.values = dataModel.temperatureValues
-        })
     }
 }

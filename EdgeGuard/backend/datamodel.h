@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QObject>
 #include <QStringList>
+#include <QTimer>
 #include <QUrl>
 #include <QVector>
 
@@ -13,11 +14,7 @@ class DataModel : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(double rms READ rms NOTIFY dataChanged)
-    Q_PROPERTY(double peak2peak READ peak2peak NOTIFY dataChanged)
-    Q_PROPERTY(double variance READ variance NOTIFY dataChanged)
-    Q_PROPERTY(double crestFactor READ crestFactor NOTIFY dataChanged)
     Q_PROPERTY(double temp READ temp NOTIFY dataChanged)
-    Q_PROPERTY(double tempSlope READ tempSlope NOTIFY dataChanged)
     Q_PROPERTY(QVector<double> vibrationValues READ vibrationValues NOTIFY vibrationValuesChanged)
     Q_PROPERTY(QVector<double> temperatureValues READ temperatureValues NOTIFY temperatureValuesChanged)
     Q_PROPERTY(bool connected READ connected NOTIFY connectedChanged)
@@ -34,11 +31,7 @@ public:
     ~DataModel() override;
 
     double rms() const { return m_rms; }
-    double peak2peak() const { return m_peak2peak; }
-    double variance() const { return m_variance; }
-    double crestFactor() const { return m_crestFactor; }
     double temp() const { return m_temp; }
-    double tempSlope() const { return m_tempSlope; }
     QVector<double> vibrationValues() const { return m_vibration; }
     QVector<double> temperatureValues() const { return m_temperature; }
     bool connected() const { return m_serial->connected(); }
@@ -75,12 +68,13 @@ signals:
 
 private slots:
     void onPacketReceived(double x, double y, double z, double temp, const QString &, int status);
+    void flushUiSamples();
 
 private:
+    void processSample(double x, double y, double z, double temp, int status);
     void syncPorts();
     void syncConnection();
     void updateMetrics();
-    void appendHistory();
     void appendLog(const QString &text);
     void startCsv();
     void stopCsv();
@@ -90,16 +84,22 @@ private:
     QString m_selectedPort;
     QString m_state = QStringLiteral("OK");
     QString m_csvPath;
-    double m_x = 0.0, m_y = 0.0, m_z = 0.0, m_rms = 0.0, m_peak2peak = 0.0;
-    double m_variance = 0.0, m_crestFactor = 0.0, m_temp = 0.0, m_tempSlope = 0.0;
-    double m_lastTemp = 0.0;
+    double m_x = 0.0, m_y = 0.0, m_z = 0.0, m_rms = 0.0, m_temp = 0.0;
     QVector<double> m_vibration;
     QVector<double> m_temperature;
     QStringList m_logs;
     QFile m_csv;
+    QTimer m_uiSampleTimer;
     bool m_loggingEnabled = false;
+    bool m_pendingUiRefresh = false;
+    int m_windowSampleCount = 0;
+    int m_csvWritesSinceFlush = 0;
+    double m_windowRmsSquareSum = 0.0;
+    double m_windowTempSum = 0.0;
 
-    static constexpr int MaxHistory = 240;
+    static constexpr int MaxHistory = 300;
+    static constexpr int UiAggregationIntervalMs = 50;
+    static constexpr int CsvFlushInterval = 20;
     static constexpr int MaxLogLines = 300;
 };
 

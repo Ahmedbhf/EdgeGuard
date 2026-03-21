@@ -6,8 +6,6 @@
 #include <QFileInfo>
 #include <QStandardPaths>
 #include <QTime>
-#include <QUrl>
-#include <algorithm>
 #include <cmath>
 
 namespace {
@@ -24,6 +22,9 @@ DataModel::DataModel(QObject *parent) : QObject(parent), m_serial(new SerialMana
     connect(m_serial, &SerialManager::errorOccurred, this, [this](const QString &text) { appendLog(text); });
     connect(m_serial, &SerialManager::portsChanged, this, &DataModel::syncPorts);
     connect(m_serial, &SerialManager::connectedChanged, this, &DataModel::syncConnection);
+    m_uiSampleTimer.setInterval(UiAggregationIntervalMs);
+    connect(&m_uiSampleTimer, &QTimer::timeout, this, &DataModel::flushUiSamples);
+    m_uiSampleTimer.start();
     refreshPorts();
     appendLog(QStringLiteral("Ready."));
 }
@@ -90,15 +91,22 @@ QString DataModel::readTextFile(const QUrl &fileUrl) const
 
 void DataModel::onPacketReceived(double x, double y, double z, double temp, const QString &, int status)
 {
+    processSample(x, y, z, temp, status);
+}
+
+void DataModel::processSample(double x, double y, double z, double temp, int status)
+{
     const QString nextState = status == 0 ? QStringLiteral("OK") : QStringLiteral("ANOMALY");
     const bool stateUpdated = nextState != m_state;
     m_state = nextState;
     m_x = x; m_y = y; m_z = z; m_temp = temp;
     updateMetrics();
-    appendHistory();
+    m_windowRmsSquareSum += (m_rms * m_rms);
+    m_windowTempSum += m_temp;
+    ++m_windowSampleCount;
+    m_pendingUiRefresh = true;
     writeCsv();
     if (stateUpdated) { emit stateChanged(); appendLog(QStringLiteral("State: %1").arg(m_state)); }
-    emit dataChanged();
 }
 
 void DataModel::syncPorts()
@@ -114,6 +122,7 @@ void DataModel::syncPorts()
 void DataModel::syncConnection()
 {
     if (!connected()) {
+        flushUiSamples();
         if (m_loggingEnabled)
             stopCsv();
         appendLog(QStringLiteral("Disconnected from %1").arg(m_selectedPort.isEmpty() ? QStringLiteral("device") : m_selectedPort));
@@ -123,23 +132,33 @@ void DataModel::syncConnection()
 
 void DataModel::updateMetrics()
 {
-    const double mean = (m_x + m_y + m_z) / 3.0;
-    const double ax = m_x - mean, ay = m_y - mean, az = m_z - mean;
-    const double energy = (ax * ax + ay * ay + az * az) / 3.0;
+    const double energy = ((m_x * m_x) + (m_y * m_y) + (m_z * m_z)) / 3.0;
     m_rms = std::sqrt(energy);
-    m_peak2peak = std::max({m_x, m_y, m_z}) - std::min({m_x, m_y, m_z});
-    m_variance = energy - (m_rms * m_rms);
-    m_crestFactor = m_rms == 0.0 ? 0.0 : m_peak2peak / m_rms;
-    m_tempSlope = m_temp - m_lastTemp;
-    m_lastTemp = m_temp;
 }
 
-void DataModel::appendHistory()
+void DataModel::flushUiSamples()
 {
-    trim(m_vibration, m_rms, MaxHistory);
-    trim(m_temperature, m_temp, MaxHistory);
-    emit vibrationValuesChanged();
-    emit temperatureValuesChanged();
+    if (!m_pendingUiRefresh && m_windowSampleCount == 0)
+        return;
+
+    if (m_windowSampleCount > 0) {
+        const double aggregatedRms = std::sqrt(m_windowRmsSquareSum / m_windowSampleCount);
+        const double aggregatedTemp = m_windowTempSum / m_windowSampleCount;
+
+        trim(m_vibration, aggregatedRms, MaxHistory);
+        trim(m_temperature, aggregatedTemp, MaxHistory);
+        emit vibrationValuesChanged();
+        emit temperatureValuesChanged();
+    }
+
+    m_windowSampleCount = 0;
+    m_windowRmsSquareSum = 0.0;
+    m_windowTempSum = 0.0;
+
+    if (m_pendingUiRefresh)
+        emit dataChanged();
+
+    m_pendingUiRefresh = false;
 }
 
 void DataModel::appendLog(const QString &text)
@@ -165,32 +184,38 @@ void DataModel::startCsv()
     m_loggingEnabled = true;
     emit loggingEnabledChanged();
     emit csvFilePathChanged();
-    m_csv.write("time,rms,peak2peak,variance,temp,state\n");
+    m_csvWritesSinceFlush = 0;
+    m_csv.write("time,rms,temp,state\n");
     m_csv.flush();
     appendLog(QStringLiteral("CSV: %1").arg(m_csvPath));
 }
 
 void DataModel::stopCsv()
 {
-    if (m_csv.isOpen())
+    if (m_csv.isOpen()) {
+        m_csv.flush();
         m_csv.close();
+    }
     if (m_loggingEnabled) {
         m_loggingEnabled = false;
         emit loggingEnabledChanged();
     }
+    m_csvWritesSinceFlush = 0;
 }
 
 void DataModel::writeCsv()
 {
     if (!m_loggingEnabled) return;
     if (!m_csv.isOpen()) return;
-    const QString line = QStringLiteral("%1,%2,%3,%4,%5,%6\n")
+    const QString line = QStringLiteral("%1,%2,%3,%4\n")
                              .arg(QTime::currentTime().toString(QStringLiteral("HH:mm:ss")))
                              .arg(QString::number(m_rms, 'f', 4))
-                             .arg(QString::number(m_peak2peak, 'f', 4))
-                             .arg(QString::number(m_variance, 'f', 4))
                              .arg(QString::number(m_temp, 'f', 1))
                              .arg(m_state);
     m_csv.write(line.toUtf8());
-    m_csv.flush();
+    ++m_csvWritesSinceFlush;
+    if (m_csvWritesSinceFlush >= CsvFlushInterval) {
+        m_csv.flush();
+        m_csvWritesSinceFlush = 0;
+    }
 }
