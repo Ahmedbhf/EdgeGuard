@@ -89,14 +89,14 @@ QString DataModel::readTextFile(const QUrl &fileUrl) const
     return QString::fromUtf8(file.readAll());
 }
 
-void DataModel::onPacketReceived(double x, double y, double z, double temp, const QString &, int status)
+void DataModel::onPacketReceived(double x, double y, double z, double temp, const QString &stateText)
 {
-    processSample(x, y, z, temp, status);
+    processSample(x, y, z, temp, stateText);
 }
 
-void DataModel::processSample(double x, double y, double z, double temp, int status)
+void DataModel::processSample(double x, double y, double z, double temp, const QString &stateText)
 {
-    const QString nextState = status == 0 ? QStringLiteral("OK") : QStringLiteral("ANOMALY");
+    const QString nextState = stateText.trimmed();
     const bool stateUpdated = nextState != m_state;
     m_state = nextState;
     m_x = x; m_y = y; m_z = z; m_temp = temp;

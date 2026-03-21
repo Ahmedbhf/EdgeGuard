@@ -86,12 +86,24 @@ void SerialManager::onTimeout() { emit errorOccurred(QStringLiteral("No data rec
 
 void SerialManager::processLine(const QByteArray &line)
 {
-    const auto fields = line.split(',');
-    if (fields.size() != 5) return;
-    bool okX = false, okY = false, okZ = false, okTemp = false, okStatus = false;
-    const double x = fields[0].trimmed().toDouble(&okX), y = fields[1].trimmed().toDouble(&okY);
-    const double z = fields[2].trimmed().toDouble(&okZ), temp = fields[3].trimmed().toDouble(&okTemp);
-    const int status = fields[4].trimmed().toInt(&okStatus);
-    if (!okX || !okY || !okZ || !okTemp || !okStatus) return;
-    emit packetReceived(x, y, z, temp, QString(), status);
+    const QString text = QString::fromUtf8(line);
+    const QStringList fields = text.split(',');
+    if (fields.size() != 7)
+        return;
+
+    bool okX = false;
+    bool okY = false;
+    bool okZ = false;
+    bool okTemp = false;
+
+    const QString stateText = fields[2].trimmed();
+    const double x = fields[3].trimmed().toDouble(&okX);
+    const double y = fields[4].trimmed().toDouble(&okY);
+    const double z = fields[5].trimmed().toDouble(&okZ);
+    const double temp = fields[6].trimmed().toDouble(&okTemp);
+
+    if (!okX || !okY || !okZ || !okTemp || stateText.isEmpty())
+        return;
+
+    emit packetReceived(x, y, z, temp, stateText);
 }

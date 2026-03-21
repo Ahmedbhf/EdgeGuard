@@ -31,7 +31,7 @@ public:
 signals:
     void portsChanged();
     void connectedChanged();
-    void packetReceived(double x, double y, double z, double temp, const QString &stateText, int status);
+    void packetReceived(double x, double y, double z, double temp, const QString &stateText);
     void errorOccurred(const QString &message);
 
 private slots:

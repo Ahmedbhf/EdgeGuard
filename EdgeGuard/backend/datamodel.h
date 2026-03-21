@@ -67,11 +67,11 @@ signals:
     void loggingEnabledChanged();
 
 private slots:
-    void onPacketReceived(double x, double y, double z, double temp, const QString &, int status);
+    void onPacketReceived(double x, double y, double z, double temp, const QString &stateText);
     void flushUiSamples();
 
 private:
-    void processSample(double x, double y, double z, double temp, int status);
+    void processSample(double x, double y, double z, double temp, const QString &stateText);
     void syncPorts();
     void syncConnection();
     void updateMetrics();
