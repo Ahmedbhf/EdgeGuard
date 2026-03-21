@@ -20,14 +20,14 @@ Rectangle {
 
         Rectangle {
             Layout.fillWidth: true
-            height: 48
+            Layout.preferredHeight: 48
             color: "transparent"
 
             Label {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
                 anchors.leftMargin: 16
-                text: "Features"
+                text: "Key Metrics"
                 font.pixelSize: 14
                 font.weight: Font.DemiBold
                 color: Theme.text
@@ -46,19 +46,30 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            GridLayout {
+            ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 16
-                columns: 2
-                rowSpacing: 16
-                columnSpacing: 16
+                spacing: 16
 
-                MetricCard { Layout.fillWidth: true; Layout.fillHeight: true; label: "RMS (mg)"; value: dataModel.rms.toFixed(2); sizeVariant: "feature" }
-                MetricCard { Layout.fillWidth: true; Layout.fillHeight: true; label: "Temp (°C)"; value: dataModel.temp.toFixed(1); sizeVariant: "feature" }
-                MetricCard { Layout.fillWidth: true; Layout.fillHeight: true; label: "Peak2Peak (g)"; value: dataModel.peak2peak.toFixed(2); sizeVariant: "feature" }
-                MetricCard { Layout.fillWidth: true; Layout.fillHeight: true; label: "Variance"; value: dataModel.variance.toFixed(2); sizeVariant: "feature" }
-                MetricCard { Layout.fillWidth: true; Layout.fillHeight: true; label: "Crest Factor"; value: dataModel.crestFactor.toFixed(2); sizeVariant: "feature" }
-                MetricCard { Layout.fillWidth: true; Layout.fillHeight: true; label: "Temp Slope (°C/min)"; value: dataModel.tempSlope.toFixed(2); sizeVariant: "feature" }
+                ValueCard {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: 0
+                    Layout.verticalStretchFactor: 1
+                    label: "RMS (mg)"
+                    value: dataModel.rms.toFixed(2)
+                    sizeVariant: "hero"
+                }
+
+                ValueCard {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: 0
+                    Layout.verticalStretchFactor: 1
+                    label: "Temperature (°C)"
+                    value: dataModel.temp.toFixed(1)
+                    sizeVariant: "hero"
+                }
             }
         }
     }

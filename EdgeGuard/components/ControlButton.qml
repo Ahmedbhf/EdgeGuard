@@ -6,18 +6,16 @@ Button {
     id: root
     hoverEnabled: false
     focusPolicy: Qt.NoFocus
+
     property bool primary: false
 
-    height: 40
+    implicitHeight: 40
     padding: 12
-
     implicitWidth: label.implicitWidth + padding * 2
 
     background: Rectangle {
         radius: 14
-        color: root.primary
-               ? Theme.primary
-               : (root.hovered ? "#18181d" : Theme.panel2)
+        color: root.primary ? Theme.primary : (root.hovered ? "#18181d" : Theme.panel2)
         border.width: root.primary ? 0 : 1
         border.color: Theme.border
     }

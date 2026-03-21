@@ -49,15 +49,14 @@ Item {
 
             Rectangle {
                 Layout.fillWidth: true
-                height: 48
+                Layout.preferredHeight: 48
                 color: "transparent"
-                radius: 16
 
                 Label {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.left: parent.left
                     anchors.leftMargin: Theme.spaceLg
-                    text: "Anomaly & State"
+                    text: "Anomaly Status"
                     color: Theme.text
                     font.bold: true
                 }
@@ -80,7 +79,7 @@ Item {
                     anchors.margins: Theme.spaceLg
                     spacing: Theme.spaceLg
 
-                    MetricCard {
+                    ValueCard {
                         Layout.fillWidth: true
                         label: "Anomaly Score"
                         value: dataModel.variance.toFixed(2)
@@ -132,7 +131,7 @@ Item {
                             spacing: Theme.spaceMd
 
                             Label {
-                                text: "State"
+                                text: "Current State"
                                 color: Theme.muted
                                 font.pixelSize: 12
                             }

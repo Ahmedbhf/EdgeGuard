@@ -27,17 +27,18 @@ qt_add_qml_module(appEdgeGuard
 
     QML_FILES
         Main.qml
-        components/AppHeader.qml
-        components/Chip.qml
-        components/ActionButton.qml
-        components/MotorSelector.qml
-        components/MetricCard.qml
-        components/FeaturesCard.qml
-        components/MotorHealthStatus.qml
-        components/StateSegment.qml
-        components/SegmentPill.qml
-        components/RawSignals.qml
-        components/SignalChart.qml
+        HistoryPage.qml
+        components/DashboardHeaderBar.qml
+        components/StatusBadge.qml
+        components/ControlButton.qml
+        components/HistoryChartPanel.qml
+        components/PortSelectorCard.qml
+        components/ValueCard.qml
+        components/MetricsOverviewPanel.qml
+        components/AnomalyStatusPanel.qml
+        components/LiveChartsPanel.qml
+        components/LiveTrendChart.qml
+        components/EventLogPanel.qml
         theme/Theme.qml
 
     SOURCES

@@ -11,7 +11,6 @@ Rectangle {
     border.width: 1
     clip: true
 
-    // ===== EXISTING API =====
     property var values: []
     property string unit: ""
     property int displayPoints: 60
@@ -23,25 +22,20 @@ Rectangle {
     readonly property color axisTextColor: isDarkMode ? Theme.text : "#374151"
     readonly property color chartBorderColor: isDarkMode ? Theme.borderSoft : "#d1d5db"
 
-    // ===== Sample rate for time axis =====
     property real sampleRateHz: 10.0
 
-    // ===== Y-axis: min fixed, max dynamic =====
     property real fixedMinY: 0.0
-    property real fixedMaxY: -1        // -1 means auto-calculate
-    property real calculatedMaxY: 1.0  // Computed from data
+    property real fixedMaxY: -1
+    property real calculatedMaxY: 1.0
 
-    // ===== Chart margins =====
     property int leftMargin: 56
     property int rightMargin: 16
     property int topMargin: 20
     property int bottomMargin: 28
 
-    // ===== Track total samples =====
     property int discardedSamples: 0
     property int lastValueCount: 0
 
-    // The actual max used for drawing
     readonly property real effectiveMaxY: {
         if (fixedMaxY > 0) return fixedMaxY
         return calculatedMaxY
@@ -67,7 +61,6 @@ Rectangle {
             if (chartWidth <= 0 || chartHeight <= 0)
                 return
 
-            // Use fixed min + effective max
             var minY = root.fixedMinY
             var maxY = root.effectiveMaxY
             var rangeY = maxY - minY
@@ -76,15 +69,9 @@ Rectangle {
             var midY = minY + rangeY / 2.0
             var totalTimeSec = root.displayPoints / root.sampleRateHz
 
-            // ============================
-            // 1. BACKGROUND FILL
-            // ============================
             ctx.fillStyle = root.chartBackgroundColor
             ctx.fillRect(chartLeft, chartTop, chartWidth, chartHeight)
 
-            // ============================
-            // 2. HORIZONTAL GRID LINES
-            // ============================
             var hGridValues = [minY, midY, maxY]
 
             ctx.strokeStyle = root.chartGridColor
@@ -102,9 +89,6 @@ Rectangle {
             }
             ctx.setLineDash([])
 
-            // ============================
-            // 3. VERTICAL GRID LINES (time)
-            // ============================
             var timeStepSec = 1.0
             if (totalTimeSec > 12) timeStepSec = 3.0
             else if (totalTimeSec > 6) timeStepSec = 2.0
@@ -129,18 +113,12 @@ Rectangle {
             }
             ctx.setLineDash([])
 
-            // ============================
-            // 4. CHART BORDER
-            // ============================
             ctx.strokeStyle = root.chartBorderColor
             ctx.lineWidth = 1
             ctx.beginPath()
             ctx.rect(chartLeft, chartTop, chartWidth, chartHeight)
             ctx.stroke()
 
-            // ============================
-            // 5. Y AXIS LABELS (left side with unit)
-            // ============================
             ctx.fillStyle = root.axisTextColor
             ctx.font = "10px sans-serif"
             ctx.textAlign = "right"
@@ -150,9 +128,6 @@ Rectangle {
             ctx.fillText(midY.toFixed(1) + " " + root.unit, chartLeft - 6, chartTop + chartHeight / 2)
             ctx.fillText(minY.toFixed(1) + " " + root.unit, chartLeft - 6, chartBottom)
 
-            // ============================
-            // 6. X AXIS LABELS (time)
-            // ============================
             ctx.fillStyle = root.axisTextColor
             ctx.font = "10px sans-serif"
             ctx.textAlign = "center"
@@ -176,9 +151,6 @@ Rectangle {
                 }
             }
 
-            // ============================
-            // 7. DRAW SIGNAL LINE
-            // ============================
             if (!root.values || root.values.length === 0)
                 return
 
@@ -186,7 +158,6 @@ Rectangle {
             var count = Math.min(root.values.length, root.displayPoints)
             var stepX = chartWidth / Math.max(1, (root.displayPoints - 1))
 
-            // Glow effect
             ctx.strokeStyle = Qt.rgba(
                 root.effectiveLineColor.r,
                 root.effectiveLineColor.g,
@@ -222,7 +193,6 @@ Rectangle {
             }
             ctx.stroke()
 
-            // Main signal line
             ctx.strokeStyle = root.effectiveLineColor
             ctx.lineWidth = 2
             ctx.lineJoin = "round"
@@ -250,11 +220,7 @@ Rectangle {
             }
             ctx.stroke()
 
-            // ============================
-            // 8. LIVE VALUE + DOT
-            // ============================
             if (count > 0) {
-                // Outer glow
                 ctx.fillStyle = Qt.rgba(
                     root.effectiveLineColor.r,
                     root.effectiveLineColor.g,
@@ -265,19 +231,16 @@ Rectangle {
                 ctx.arc(lastX, lastY, 8, 0, 2 * Math.PI)
                 ctx.fill()
 
-                // Inner dot
                 ctx.fillStyle = root.effectiveLineColor
                 ctx.beginPath()
                 ctx.arc(lastX, lastY, 4, 0, 2 * Math.PI)
                 ctx.fill()
 
-                // Center uses chart background so the marker stays readable in both themes.
                 ctx.fillStyle = root.chartBackgroundColor
                 ctx.beginPath()
                 ctx.arc(lastX, lastY, 1.5, 0, 2 * Math.PI)
                 ctx.fill()
 
-                // Live value label above dot
                 var liveValue = root.values[start + count - 1]
                 ctx.fillStyle = root.effectiveLineColor
                 ctx.font = "bold 11px sans-serif"
@@ -288,7 +251,6 @@ Rectangle {
         }
     }
 
-    // ===== Auto-calculate max from data =====
     function updateDynamicMax() {
         if (!root.values || root.values.length === 0) {
             root.calculatedMaxY = 1.0
@@ -301,10 +263,8 @@ Rectangle {
             if (root.values[i] > max) max = root.values[i]
         }
 
-        // Round up to nice number with 20% padding
         var padded = max * 1.2
 
-        // Round to nearest nice value
         if (padded <= 1) padded = 1
         else if (padded <= 2) padded = 2
         else if (padded <= 5) padded = 5

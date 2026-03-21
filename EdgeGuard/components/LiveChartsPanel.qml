@@ -16,23 +16,19 @@ Rectangle {
         anchors.fill: parent
         spacing: 0
 
-        // ===== HEADER =====
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 48
             color: "transparent"
 
-            RowLayout {
-                anchors.fill: parent
+            Label {
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
                 anchors.leftMargin: 20
-                anchors.rightMargin: 20
-
-                Label {
-                    text: "Raw Signals"
-                    font.pixelSize: 14
-                    font.weight: Font.DemiBold
-                    color: Theme.text
-                }
+                text: "Live Charts"
+                font.pixelSize: 14
+                font.weight: Font.DemiBold
+                color: Theme.text
             }
         }
 
@@ -42,16 +38,12 @@ Rectangle {
             color: Theme.borderSoft
         }
 
-        // ===== CONTENT =====
         ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.margins: 20
             spacing: 20
 
-            // =========================
-            // VIBRATION (RMS) CARD
-            // =========================
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -66,30 +58,22 @@ Rectangle {
                     anchors.margins: 16
                     spacing: 12
 
-                    RowLayout {
-                        Layout.fillWidth: true
-
-                        Label {
-                            text: "Vibration (RMS)"
-                            color: Theme.text
-                            font.weight: Font.DemiBold
-                        }
+                    Label {
+                        text: "RMS Vibration"
+                        color: Theme.text
+                        font.weight: Font.DemiBold
                     }
 
-                    SignalChart {
-                        id: vibChart
+                    LiveTrendChart {
+                        id: rmsChart
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         unit: "mg"
                         displayPoints: 60
-                             // Dynamic max based on data
                     }
                 }
             }
 
-            // =========================
-            // TEMPERATURE CARD
-            // =========================
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -104,41 +88,36 @@ Rectangle {
                     anchors.margins: 16
                     spacing: 12
 
-                    RowLayout {
-                        Layout.fillWidth: true
-
-                        Label {
-                            text: "Temperature"
-                            color: Theme.text
-                            font.weight: Font.DemiBold
-                        }
+                    Label {
+                        text: "Temperature"
+                        color: Theme.text
+                        font.weight: Font.DemiBold
                     }
 
-                    SignalChart {
-                        id: tempChart
+                    LiveTrendChart {
+                        id: temperatureChart
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         unit: "°C"
                         displayPoints: 60
-                          // Dynamic max based on data
                         lineColor: "#F59E0B"
                     }
                 }
             }
         }
 
-        // ===== CONNECT TO C++ MODEL =====
-        Component.onCompleted: {
-            vibChart.values = dataModel.vibrationValues
-            tempChart.values = dataModel.temperatureValues
+    }
 
-            dataModel.vibrationValuesChanged.connect(function() {
-                vibChart.values = dataModel.vibrationValues
-            })
+    Component.onCompleted: {
+        rmsChart.values = dataModel.vibrationValues
+        temperatureChart.values = dataModel.temperatureValues
 
-            dataModel.temperatureValuesChanged.connect(function() {
-                tempChart.values = dataModel.temperatureValues
-            })
-        }
+        dataModel.vibrationValuesChanged.connect(function() {
+            rmsChart.values = dataModel.vibrationValues
+        })
+
+        dataModel.temperatureValuesChanged.connect(function() {
+            temperatureChart.values = dataModel.temperatureValues
+        })
     }
 }

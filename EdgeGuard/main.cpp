@@ -1,10 +1,11 @@
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include "backend/datamodel.h"
 int main(int argc, char *argv[])
 {
-    QGuiApplication app(argc, argv);
+    qputenv("QT_QUICK_CONTROLS_STYLE", "Basic");
+    QApplication app(argc, argv);
 
     QQmlApplicationEngine engine;
     DataModel model;

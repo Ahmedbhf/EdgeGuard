@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 import EdgeGuard
 
@@ -16,8 +15,8 @@ Rectangle {
     property string value: ""
     property string sizeVariant: "normal"
 
-    property int valueSize: sizeVariant === "feature" ? 34 : (sizeVariant === "hero" ? 48 : (sizeVariant === "large" ? 40 : 18))
-    property int labelSize: sizeVariant === "feature" ? 12 : (sizeVariant === "hero" ? 15 : (sizeVariant === "large" ? 14 : 12))
+    property int valueSize: sizeVariant === "hero" ? 48 : (sizeVariant === "large" ? 40 : 18)
+    property int labelSize: sizeVariant === "hero" ? 15 : (sizeVariant === "large" ? 14 : 12)
 
     implicitHeight: content.implicitHeight + Theme.spaceLg * 2
 

@@ -27,7 +27,10 @@ DataModel::DataModel(QObject *parent) : QObject(parent), m_serial(new SerialMana
     refreshPorts();
     appendLog(QStringLiteral("Ready."));
 }
-DataModel::~DataModel() { stopCsv(); }
+DataModel::~DataModel()
+{
+    stopCsv();
+}
 
 void DataModel::connectToPort(const QString &portName)
 {
@@ -35,7 +38,6 @@ void DataModel::connectToPort(const QString &portName)
     if (port.isEmpty()) return appendLog(QStringLiteral("No serial device selected."));
     setSelectedPort(port);
     if (!m_serial->connectToPort(port)) return;
-    startCsv();
     appendLog(QStringLiteral("Connected to %1").arg(port));
 }
 void DataModel::disconnectPort() { if (connected()) m_serial->disconnectPort(); }
@@ -57,6 +59,35 @@ void DataModel::openCsvFile()
     if (!QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(m_csvPath).absolutePath())))
         appendLog(QStringLiteral("Could not open the CSV file."));
 }
+
+void DataModel::startLogging()
+{
+    if (!connected())
+        return appendLog(QStringLiteral("Connect to a UART port before starting logging."));
+    if (m_loggingEnabled)
+        return;
+    startCsv();
+    if (m_loggingEnabled)
+        appendLog(QStringLiteral("Logging started"));
+}
+
+void DataModel::stopLogging()
+{
+    if (!m_loggingEnabled)
+        return;
+    stopCsv();
+    appendLog(QStringLiteral("Logging stopped"));
+}
+
+QString DataModel::readTextFile(const QUrl &fileUrl) const
+{
+    const QString path = fileUrl.isLocalFile() ? fileUrl.toLocalFile() : fileUrl.toString();
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return QString();
+    return QString::fromUtf8(file.readAll());
+}
+
 void DataModel::onPacketReceived(double x, double y, double z, double temp, const QString &, int status)
 {
     const QString nextState = status == 0 ? QStringLiteral("OK") : QStringLiteral("ANOMALY");
@@ -82,8 +113,9 @@ void DataModel::syncPorts()
 
 void DataModel::syncConnection()
 {
-    if (!connected() && m_csv.isOpen()) {
-        stopCsv();
+    if (!connected()) {
+        if (m_loggingEnabled)
+            stopCsv();
         appendLog(QStringLiteral("Disconnected from %1").arg(m_selectedPort.isEmpty() ? QStringLiteral("device") : m_selectedPort));
     }
     emit connectedChanged();
@@ -130,6 +162,8 @@ void DataModel::startCsv()
         emit csvFilePathChanged();
         return appendLog(QStringLiteral("Could not create CSV file."));
     }
+    m_loggingEnabled = true;
+    emit loggingEnabledChanged();
     emit csvFilePathChanged();
     m_csv.write("time,rms,peak2peak,variance,temp,state\n");
     m_csv.flush();
@@ -138,11 +172,17 @@ void DataModel::startCsv()
 
 void DataModel::stopCsv()
 {
-    if (m_csv.isOpen()) m_csv.close();
+    if (m_csv.isOpen())
+        m_csv.close();
+    if (m_loggingEnabled) {
+        m_loggingEnabled = false;
+        emit loggingEnabledChanged();
+    }
 }
 
 void DataModel::writeCsv()
 {
+    if (!m_loggingEnabled) return;
     if (!m_csv.isOpen()) return;
     const QString line = QStringLiteral("%1,%2,%3,%4,%5,%6\n")
                              .arg(QTime::currentTime().toString(QStringLiteral("HH:mm:ss")))

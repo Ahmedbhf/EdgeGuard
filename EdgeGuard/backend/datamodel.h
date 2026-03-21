@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QObject>
 #include <QStringList>
+#include <QUrl>
 #include <QVector>
 
 class DataModel : public QObject
@@ -26,6 +27,7 @@ class DataModel : public QObject
     Q_PROPERTY(QString state READ state NOTIFY stateChanged)
     Q_PROPERTY(QString logText READ logText NOTIFY logTextChanged)
     Q_PROPERTY(QString csvFilePath READ csvFilePath NOTIFY csvFilePathChanged)
+    Q_PROPERTY(bool loggingEnabled READ loggingEnabled NOTIFY loggingEnabledChanged)
 
 public:
     explicit DataModel(QObject *parent = nullptr);
@@ -46,6 +48,7 @@ public:
     QString state() const { return m_state; }
     QString logText() const { return m_logs.join('\n'); }
     QString csvFilePath() const { return m_csvPath; }
+    bool loggingEnabled() const { return m_loggingEnabled; }
 
     Q_INVOKABLE void connectToPort(const QString &portName);
     Q_INVOKABLE void disconnectPort();
@@ -54,6 +57,9 @@ public:
     Q_INVOKABLE void setSelectedPort(const QString &portName);
     Q_INVOKABLE QString portNameAt(int index) const { return m_serial->portNameAt(index); }
     Q_INVOKABLE void openCsvFile();
+    Q_INVOKABLE void startLogging();
+    Q_INVOKABLE void stopLogging();
+    Q_INVOKABLE QString readTextFile(const QUrl &fileUrl) const;
 
 signals:
     void dataChanged();
@@ -65,6 +71,7 @@ signals:
     void stateChanged();
     void logTextChanged();
     void csvFilePathChanged();
+    void loggingEnabledChanged();
 
 private slots:
     void onPacketReceived(double x, double y, double z, double temp, const QString &, int status);
@@ -90,6 +97,7 @@ private:
     QVector<double> m_temperature;
     QStringList m_logs;
     QFile m_csv;
+    bool m_loggingEnabled = false;
 
     static constexpr int MaxHistory = 240;
     static constexpr int MaxLogLines = 300;

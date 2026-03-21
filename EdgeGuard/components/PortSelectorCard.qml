@@ -34,7 +34,7 @@ Rectangle {
         spacing: 8
 
         Label {
-            text: "Machine"
+            text: "UART Device"
             font.pixelSize: 12
             color: Theme.muted
         }
