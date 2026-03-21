@@ -23,7 +23,6 @@ ApplicationWindow {
             onConnectionToggled: dataModel.toggleConnection()
             onExportCsvClicked: dataModel.openCsvFile()
             onHistoryClicked: root.showingHistoryPage = true
-            onRefreshClicked: dataModel.refreshPorts()
             onThemeToggleClicked: Theme.toggleMode()
         }
 

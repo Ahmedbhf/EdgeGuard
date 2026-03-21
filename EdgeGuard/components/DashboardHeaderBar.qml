@@ -10,7 +10,6 @@ Rectangle {
     signal connectionToggled()
     signal exportCsvClicked()
     signal historyClicked()
-    signal refreshClicked()
     signal themeToggleClicked()
 
     height: 72
@@ -46,11 +45,6 @@ Rectangle {
         RowLayout {
             spacing: 8
             Layout.alignment: Qt.AlignVCenter
-
-            ControlButton {
-                text: "Refresh"
-                onClicked: root.refreshClicked()
-            }
 
             ControlButton {
                 text: Theme.lightMode ? "Dark Mode" : "Light Mode"
