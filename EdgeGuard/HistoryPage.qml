@@ -259,37 +259,16 @@ Rectangle {
             }
         }
 
-        HistoryChartPanel {
+        HistoryChart {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.verticalStretchFactor: 1
-            chartTitle: "RMS vs Time"
-            valueLabel: "RMS"
-            valueFormat: "%.2f"
-            valueDecimals: 2
-            lineColor: Theme.primary
-            points: root.rmsPoints
-            axisMinY: root.rmsMinY
-            axisMaxY: root.rmsMaxY
-            viewStartMs: root.viewStartMs
-            viewEndMs: root.viewEndMs
-            interactiveEnabled: root.dataLoaded
-            onPanRequested: function(pixelDelta, chartWidth) { root.pan(pixelDelta, chartWidth) }
-            onZoomRequested: function(factor) { root.zoom(factor) }
-        }
-
-        HistoryChartPanel {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.verticalStretchFactor: 1
-            chartTitle: "Temperature vs Time"
-            valueLabel: "Temp"
-            valueFormat: "%.1f"
-            valueDecimals: 1
-            lineColor: "#F59E0B"
-            points: root.tempPoints
-            axisMinY: root.tempMinY
-            axisMaxY: root.tempMaxY
+            Layout.verticalStretchFactor: 2
+            rmsPoints: root.rmsPoints
+            tempPoints: root.tempPoints
+            rmsMinY: root.rmsMinY
+            rmsMaxY: root.rmsMaxY
+            tempMinY: root.tempMinY
+            tempMaxY: root.tempMaxY
             viewStartMs: root.viewStartMs
             viewEndMs: root.viewEndMs
             interactiveEnabled: root.dataLoaded

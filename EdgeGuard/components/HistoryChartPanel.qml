@@ -32,11 +32,13 @@ Rectangle {
         hoverCard.visible = false
     }
 
-    function refreshSeries() {
-        lineSeries.clear()
-        resetHover()
+    function hasPoints() {
+        return points && points.length > 0
+    }
 
-        if (!points || points.length === 0)
+    function populateSeries() {
+        lineSeries.clear()
+        if (!hasPoints())
             return
 
         for (var i = 0; i < points.length; ++i)
@@ -44,7 +46,7 @@ Rectangle {
     }
 
     function nearestIndex(targetX) {
-        if (!points || points.length === 0)
+        if (!hasPoints())
             return -1
 
         var left = 0
@@ -63,14 +65,28 @@ Rectangle {
         return candidate
     }
 
+    function inPlotArea(plot, mouseX, mouseY) {
+        return mouseX >= plot.x && mouseX <= plot.x + plot.width
+                && mouseY >= plot.y && mouseY <= plot.y + plot.height
+    }
+
+    function clamp(value, minValue, maxValue) {
+        return Math.max(minValue, Math.min(maxValue, value))
+    }
+
+    function refreshSeries() {
+        resetHover()
+        populateSeries()
+    }
+
     function updateHover(mouseX, mouseY) {
-        if (!interactiveEnabled || !points || points.length === 0) {
+        if (!interactiveEnabled || !hasPoints()) {
             resetHover()
             return
         }
 
         var plot = chart.plotArea
-        if (mouseX < plot.x || mouseX > plot.x + plot.width || mouseY < plot.y || mouseY > plot.y + plot.height) {
+        if (!inPlotArea(plot, mouseX, mouseY)) {
             resetHover()
             return
         }
@@ -89,7 +105,9 @@ Rectangle {
         highlightSeries.append(point.x, point.y)
 
         hoverLine.visible = true
-        hoverLine.x = Math.max(plot.x, Math.min(plot.x + plot.width - hoverLine.width, scenePoint.x - hoverLine.width / 2))
+        hoverLine.x = clamp(scenePoint.x - hoverLine.width / 2,
+                            plot.x,
+                            plot.x + plot.width - hoverLine.width)
         hoverLine.y = plot.y
         hoverLine.height = plot.height
 
@@ -101,12 +119,12 @@ Rectangle {
         var maxX = width - hoverCard.width - 12
         if (desiredX > maxX)
             desiredX = scenePoint.x - hoverCard.width - 14
-        hoverCard.x = Math.max(12, Math.min(maxX, desiredX))
+        hoverCard.x = clamp(desiredX, 12, maxX)
 
         var desiredY = scenePoint.y - hoverCard.height - 12
         if (desiredY < 12)
             desiredY = scenePoint.y + 12
-        hoverCard.y = Math.max(12, Math.min(height - hoverCard.height - 12, desiredY))
+        hoverCard.y = clamp(desiredY, 12, height - hoverCard.height - 12)
     }
 
     onPointsChanged: refreshSeries()

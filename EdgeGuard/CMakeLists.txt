@@ -28,6 +28,7 @@ qt_add_qml_module(appEdgeGuard
     QML_FILES
         Main.qml
         HistoryPage.qml
+        components/HistoryChart.qml
         components/DashboardHeaderBar.qml
         components/StatusBadge.qml
         components/ControlButton.qml
