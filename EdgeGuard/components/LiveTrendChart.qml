@@ -32,6 +32,7 @@ Rectangle {
     readonly property real currentValue: values && values.length > 0 ? values[values.length - 1] : 0
 
     function updateDynamicMax() {
+        // Pick a readable Y range automatically so the chart is easy to scan during live updates.
         if (!values || values.length === 0) {
             calculatedMaxY = 1.0
             return
@@ -58,6 +59,7 @@ Rectangle {
     }
 
     function rebuildSeries() {
+        // Rebuild all chart layers whenever the input values or visual settings change.
         updateDynamicMax()
         glowLineSeries.clear()
         trendSeries.clear()
@@ -70,6 +72,7 @@ Rectangle {
         var count = Math.min(values.length, displayPoints)
         var start = values.length - count
 
+        // X values are negative seconds so the newest point stays at the right edge at time 0.
         for (var i = 0; i < count; i++) {
             var x = -((count - 1 - i) * secondsPerStep)
             glowLineSeries.append(x, values[start + i])
@@ -139,6 +142,7 @@ Rectangle {
 
         ScatterSeries {
             id: glowSeries
+            // A soft larger point helps the latest sample stand out.
             axisX: axisX
             axisY: axisY
             color: root.latestGlowColor

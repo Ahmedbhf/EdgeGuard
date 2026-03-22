@@ -7,6 +7,7 @@ import EdgeGuard
 Page {
     id: root
 
+    // These values drive the simple setup flow before entering the main dashboard.
     property bool connectionRequested: false
     readonly property string preferredPort: "COM11"
     readonly property bool deviceConnected: dataModel.deviceId !== ""
@@ -26,6 +27,7 @@ Page {
     }
 
     function continueToDashboard() {
+        // Only continue after the device has identified itself through UART.
         if (!root.deviceConnected)
             return
 
@@ -33,6 +35,7 @@ Page {
     }
 
     function connectToDetectedPort() {
+        // Try the preferred port first, then the current selection, then the first available port.
         dataModel.refreshPorts()
 
         var targetPort = ""
@@ -86,6 +89,7 @@ Page {
                 width: 200
                 height: 44
                 onClicked: {
+                    // Remember that the user started the connection flow so we can show waiting text.
                     root.connectionRequested = true
                     root.connectToDetectedPort()
                 }
@@ -116,6 +120,7 @@ Page {
 
                     delegate: Rectangle {
                         required property var modelData
+                        // Cards are read-only here; they highlight the machine type detected from the device.
                         readonly property bool isSelected: root.deviceConnected && dataModel.machineType === modelData.value
 
                         width: (machineGrid.width - (machineGrid.columns - 1) * machineGrid.spacing) / machineGrid.columns
@@ -186,6 +191,7 @@ Page {
 
             Text {
                 width: parent.width
+                // This helper text only appears after the user asks to connect.
                 visible: root.connectionRequested && !root.deviceConnected
                 text: "Waiting for UART data..."
                 color: Theme.muted

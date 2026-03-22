@@ -10,6 +10,7 @@
 #include <cmath>
 
 namespace {
+// Appends a new sample and keeps only the latest "max" values for chart history.
 void trim(QVector<double> &values, double value, int max)
 {
     values.append(value);
@@ -19,6 +20,7 @@ void trim(QVector<double> &values, double value, int max)
 }
 DataModel::DataModel(QObject *parent) : QObject(parent), m_serial(new SerialManager(this))
 {
+    // The device may send its identity before the user chooses anything in the UI.
     connect(m_serial, &SerialManager::deviceIdReceived, this, [this](const QString &deviceId) {
         if (m_deviceId.isEmpty())
             setDeviceId(deviceId);
@@ -29,6 +31,7 @@ DataModel::DataModel(QObject *parent) : QObject(parent), m_serial(new SerialMana
     connect(m_serial, &SerialManager::errorOccurred, this, [this](const QString &text) { appendLog(text); });
     connect(m_serial, &SerialManager::portsChanged, this, &DataModel::syncPorts);
     connect(m_serial, &SerialManager::connectedChanged, this, &DataModel::syncConnection);
+    // UI charts are updated on a timer so bursts of serial data do not redraw the screen too often.
     m_uiSampleTimer.setInterval(UiAggregationIntervalMs);
     connect(&m_uiSampleTimer, &QTimer::timeout, this, &DataModel::flushUiSamples);
     m_uiSampleTimer.start();
@@ -42,6 +45,7 @@ DataModel::~DataModel()
 
 void DataModel::connectToPort(const QString &portName)
 {
+    // QML may pass a display label like "COM11 (USB Serial Device)", so keep only the real port name.
     const QString port = portName.split(' ').first().trimmed();
     if (port.isEmpty()) return appendLog(QStringLiteral("No serial device selected."));
     setSelectedPort(port);
@@ -79,6 +83,7 @@ void DataModel::setDeviceId(const QString &deviceId)
 
 void DataModel::openCsvFile()
 {
+    // Open the saved file directly when possible, otherwise open its folder as a fallback.
     if (m_csvPath.isEmpty() || !QFileInfo::exists(m_csvPath))
         return appendLog(QStringLiteral("No CSV file available yet."));
     const QUrl fileUrl = QUrl::fromLocalFile(m_csvPath);
@@ -89,6 +94,7 @@ void DataModel::openCsvFile()
 
 void DataModel::startLogging()
 {
+    // Logging is only useful when live data is already coming from the serial device.
     if (!connected())
         return appendLog(QStringLiteral("Connect to a UART port before starting logging."));
     if (m_loggingEnabled)
@@ -125,6 +131,7 @@ QString DataModel::readTextFileLimited(const QUrl &fileUrl, int maxLines) const
     QTextStream stream(&file);
     QStringList lines;
     int count = 0;
+    // This is used by QML previews where loading the full file is not necessary.
     while (!stream.atEnd() && count < maxLines) {
         lines.append(stream.readLine());
         ++count;
@@ -140,12 +147,14 @@ void DataModel::onPacketReceived(double anomalyScore, double x, double y, double
 
 void DataModel::processSample(double anomalyScore, double x, double y, double z, double temp, const QString &stateText)
 {
+    // Store the newest raw values first so all later calculations use the same sample.
     const QString nextState = stateText.trimmed();
     const bool stateUpdated = nextState != m_state;
     m_state = nextState;
     m_anomalyScore = anomalyScore;
     m_x = x; m_y = y; m_z = z; m_temp = temp;
     updateMetrics();
+    // These accumulators let us average short bursts of samples before refreshing the charts.
     m_windowRmsSquareSum += (m_rms * m_rms);
     m_windowTempSum += m_temp;
     ++m_windowSampleCount;
@@ -156,6 +165,7 @@ void DataModel::processSample(double anomalyScore, double x, double y, double z,
 
 void DataModel::syncPorts()
 {
+    // Keep the previous selection when possible; otherwise fall back to the first detected port.
     emit availablePortsChanged();
     QString next = m_selectedPort;
     bool keep = false;
@@ -167,6 +177,7 @@ void DataModel::syncPorts()
 void DataModel::syncConnection()
 {
     if (!connected()) {
+        // Flush any pending chart values before the session fully ends.
         flushUiSamples();
         if (m_loggingEnabled)
             stopCsv();
@@ -177,6 +188,7 @@ void DataModel::syncConnection()
 
 void DataModel::updateMetrics()
 {
+    // RMS is calculated from the three vibration axes to give one overall vibration level.
     const double energy = ((m_x * m_x) + (m_y * m_y) + (m_z * m_z)) / 3.0;
     m_rms = std::sqrt(energy);
 }
@@ -187,6 +199,7 @@ void DataModel::flushUiSamples()
         return;
 
     if (m_windowSampleCount > 0) {
+        // Average the short window so the chart shows smoother values and fewer redraws.
         const double aggregatedRms = std::sqrt(m_windowRmsSquareSum / m_windowSampleCount);
         const double aggregatedTemp = m_windowTempSum / m_windowSampleCount;
 
@@ -208,6 +221,7 @@ void DataModel::flushUiSamples()
 
 void DataModel::appendLog(const QString &text)
 {
+    // Prefix each log line with a clock time so the operator can follow the sequence of events.
     m_logs.append(QStringLiteral("%1  %2").arg(QTime::currentTime().toString(QStringLiteral("HH:mm:ss")), text));
     while (m_logs.size() > MaxLogLines) m_logs.removeFirst();
     emit logTextChanged();
@@ -216,6 +230,7 @@ void DataModel::appendLog(const QString &text)
 void DataModel::startCsv()
 {
     stopCsv();
+    // Save logs in the user's Documents folder so the file is easy to find after the session.
     QString base = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     if (base.isEmpty()) base = QDir::currentPath();
     QDir(base).mkpath(QStringLiteral("EdgeGuard"));
@@ -252,6 +267,7 @@ void DataModel::writeCsv()
 {
     if (!m_loggingEnabled) return;
     if (!m_csv.isOpen()) return;
+    // We write already-calculated values instead of raw axes because the dashboard shows the same summary values.
     const QString line = QStringLiteral("%1,%2,%3,%4\n")
                              .arg(QTime::currentTime().toString(QStringLiteral("HH:mm:ss")))
                              .arg(QString::number(m_rms, 'f', 4))

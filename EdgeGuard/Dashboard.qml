@@ -10,6 +10,7 @@ Item {
     id: root
     anchors.fill: parent
 
+    // The dashboard swaps to the history page without leaving the current stack entry.
     property bool showingHistoryPage: false
 
     function returnToSetup() {
@@ -31,6 +32,7 @@ Item {
         DashboardHeaderBar {
             Layout.fillWidth: true
             onConnectionToggled: {
+                // Disconnecting also clears the detected identity so setup starts fresh next time.
                 if (dataModel.connected) {
                     dataModel.disconnectPort()
                     dataModel.deviceId = ""
@@ -58,6 +60,7 @@ Item {
                 spacing: Theme.spaceLg
                 Layout.minimumHeight: 0
 
+                // The row is split into live charts, key numbers, and current health status.
                 LiveChartsPanel {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -92,6 +95,7 @@ Item {
     Loader {
         id: historyPageLoader
         anchors.fill: parent
+        // Load the history screen only when needed so the dashboard stays lightweight.
         active: root.showingHistoryPage
         sourceComponent: Component {
             HistoryPage {

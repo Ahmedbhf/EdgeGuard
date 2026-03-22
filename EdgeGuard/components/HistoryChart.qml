@@ -5,6 +5,7 @@ import EdgeGuard
 Item {
     id: root
 
+    // This wrapper keeps both history charts using the same time window and interactions.
     property var rmsPoints: []
     property var tempPoints: []
     property real rmsMinY: 0
@@ -26,6 +27,7 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.verticalStretchFactor: 1
+            // RMS and temperature charts share the same pan and zoom controls from the parent page.
             chartTitle: "RMS vs Time"
             valueLabel: "RMS"
             valueFormat: "%.2f"

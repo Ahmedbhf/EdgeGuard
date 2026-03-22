@@ -1,6 +1,7 @@
 #include "serialmanager.h"
 
 namespace {
+// The UI shows a friendly label, but we still keep the raw port name separately.
 QString labelFor(const QSerialPortInfo &info)
 {
     return info.portName() + QStringLiteral(" (") + info.description() + QStringLiteral(")");
@@ -9,6 +10,7 @@ QString labelFor(const QSerialPortInfo &info)
 
 SerialManager::SerialManager(QObject *parent) : QObject(parent)
 {
+    // Every time the serial port has new bytes ready, continue parsing the incoming stream.
     connect(&m_port, &QSerialPort::readyRead, this, &SerialManager::onReadyRead);
 }
 
@@ -26,6 +28,7 @@ QString SerialManager::portNameAt(int index) const
 
 void SerialManager::refreshPorts()
 {
+    // Rebuild the port list from scratch so removed devices disappear from the UI immediately.
     m_ports.clear();
     for (const auto &info : QSerialPortInfo::availablePorts())
         m_ports.append({info.portName(), labelFor(info)});
@@ -37,6 +40,7 @@ bool SerialManager::connectToPort(const QString &portName)
     const QString portNameTrimmed = portName.trimmed();
     if (portNameTrimmed.isEmpty()) return emit errorOccurred(QStringLiteral("Select a serial device first.")), false;
     if (connected()) disconnectPort();
+    // These serial settings must match the firmware on the device.
     m_port.setPortName(portNameTrimmed);
     m_port.setBaudRate(QSerialPort::Baud115200);
     m_port.setDataBits(QSerialPort::Data8);
@@ -59,6 +63,7 @@ void SerialManager::disconnectPort()
 
 void SerialManager::onReadyRead()
 {
+    // Append new bytes to the buffer and split on newline, because one read may contain partial or multiple messages.
     const QByteArray data = m_port.readAll();
     m_buffer.append(data);
 
@@ -76,6 +81,7 @@ void SerialManager::processLine(const QByteArray &line)
     if (str.isEmpty())
         return;
 
+    // UID lines identify the device and are handled separately from sensor packets.
     if (str.startsWith(QStringLiteral("UID:"), Qt::CaseInsensitive)) {
         const QString deviceId = str.mid(4).trimmed();
         if (!deviceId.isEmpty())
@@ -83,6 +89,8 @@ void SerialManager::processLine(const QByteArray &line)
         return;
     }
 
+    // Expected packet format:
+    // field 0..1 = unused here, field 2 = state, field 3..5 = x/y/z, field 6 = temperature.
     const QStringList fields = str.split(',');
     if (fields.size() != 7)
         return;
@@ -96,6 +104,7 @@ void SerialManager::processLine(const QByteArray &line)
     const double y = fields[4].trimmed().toDouble(&yOk);
     const double z = fields[5].trimmed().toDouble(&zOk);
     const double temp = fields[6].trimmed().toDouble(&tempOk);
+    // Ignore malformed lines quietly so one bad packet does not break the live stream.
     if (!xOk || !yOk || !zOk || !tempOk)
         return;
 

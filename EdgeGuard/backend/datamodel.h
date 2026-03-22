@@ -13,6 +13,7 @@
 class DataModel : public QObject
 {
     Q_OBJECT
+    // These properties expose live values to QML so the UI can bind directly to backend state.
     Q_PROPERTY(double rms READ rms NOTIFY dataChanged)
     Q_PROPERTY(double anomalyScore READ anomalyScore NOTIFY dataChanged)
     Q_PROPERTY(double temp READ temp NOTIFY dataChanged)
@@ -78,17 +79,26 @@ signals:
     void loggingEnabledChanged();
 
 private slots:
+    // Raw serial packets arrive here first, then we turn them into app state.
     void onPacketReceived(double anomalyScore, double x, double y, double z, double temp, const QString &stateText);
+    // This runs on a timer to push batched samples into the UI at a steady pace.
     void flushUiSamples();
 
 private:
+    // Updates all calculated values for one incoming sample.
     void processSample(double anomalyScore, double x, double y, double z, double temp, const QString &stateText);
+    // Keeps the selected serial port in sync with the list from the OS.
     void syncPorts();
+    // Handles UI state changes when the serial link connects or disconnects.
     void syncConnection();
+    // Recomputes summary values shown on the dashboard.
     void updateMetrics();
+    // Adds one line to the on-screen event log.
     void appendLog(const QString &text);
+    // Starts and stops CSV logging for the current session.
     void startCsv();
     void stopCsv();
+    // Writes the latest values to the CSV file when logging is enabled.
     void writeCsv();
 
     SerialManager *m_serial = nullptr;
@@ -110,6 +120,7 @@ private:
     double m_windowRmsSquareSum = 0.0;
     double m_windowTempSum = 0.0;
 
+    // Small fixed limits keep charts and logs responsive even during long runs.
     static constexpr int MaxHistory = 300;
     static constexpr int UiAggregationIntervalMs = 50;
     static constexpr int CsvFlushInterval = 20;

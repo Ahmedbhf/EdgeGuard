@@ -27,6 +27,7 @@ Rectangle {
     signal zoomRequested(real factor)
 
     function resetHover() {
+        // Clear the hover marker and tooltip when the pointer leaves the chart.
         highlightSeries.clear()
         hoverLine.visible = false
         hoverCard.visible = false
@@ -41,6 +42,7 @@ Rectangle {
         if (!hasPoints())
             return
 
+        // Convert the QML array into QtCharts points every time the source data changes.
         for (var i = 0; i < points.length; ++i)
             lineSeries.append(points[i].x, points[i].y)
     }
@@ -49,6 +51,7 @@ Rectangle {
         if (!hasPoints())
             return -1
 
+        // Binary search is faster than scanning every point when the history list gets larger.
         var left = 0
         var right = points.length - 1
         while (left < right) {
@@ -80,6 +83,7 @@ Rectangle {
     }
 
     function updateHover(mouseX, mouseY) {
+        // The tooltip follows the point closest to the mouse inside the chart plot area.
         if (!interactiveEnabled || !hasPoints()) {
             resetHover()
             return
@@ -202,6 +206,7 @@ Rectangle {
 
                 onPositionChanged: function(mouse) {
                     if (mouse.buttons & Qt.LeftButton) {
+                        // Dragging sends pan requests to the parent page, which owns the current time window.
                         root.panRequested(mouse.x - dragStartX, width)
                         dragStartX = mouse.x
                     } else {
@@ -216,6 +221,7 @@ Rectangle {
                 onExited: root.resetHover()
 
                 onWheel: function(wheel) {
+                    // Mouse wheel zoom is also handled by the parent so both charts stay aligned.
                     root.zoomRequested(wheel.angleDelta.y > 0 ? 0.8 : 1.25)
                     wheel.accepted = true
                 }

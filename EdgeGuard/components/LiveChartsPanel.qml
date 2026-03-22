@@ -66,6 +66,7 @@ Rectangle {
 
                     LiveTrendChart {
                         id: rmsChart
+                        // This chart uses the rolling vibration history prepared by the backend.
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         values: dataModel.vibrationValues
@@ -101,6 +102,7 @@ Rectangle {
 
                     LiveTrendChart {
                         id: temperatureChart
+                        // This second chart reuses the same component with temperature-specific settings.
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         values: dataModel.temperatureValues
