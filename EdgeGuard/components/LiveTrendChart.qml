@@ -84,7 +84,7 @@ Rectangle {
         id: chartView
         anchors.fill: parent
         anchors.margins: 0
-        antialiasing: true
+        antialiasing: false
         legend.visible: false
         backgroundRoundness: 0
         backgroundColor: "transparent"
@@ -121,20 +121,20 @@ Rectangle {
             shadesVisible: false
         }
 
-        SplineSeries {
+        LineSeries {
             id: glowLineSeries
             axisX: axisX
             axisY: axisY
             color: root.lineGlowColor
-            width: 7.0
+            width: 5.0
         }
 
-        SplineSeries {
+        LineSeries {
             id: trendSeries
             axisX: axisX
             axisY: axisY
             color: root.effectiveLineColor
-            width: 2.9
+            width: 2.2
         }
 
         ScatterSeries {

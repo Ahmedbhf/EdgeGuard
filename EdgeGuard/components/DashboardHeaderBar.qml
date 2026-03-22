@@ -32,9 +32,15 @@ Rectangle {
             Layout.alignment: Qt.AlignVCenter
         }
 
-        StatusBadge {
-            text: dataModel.connected ? "UART: " + dataModel.currentPort : "UART: Disconnected"
-            tone: dataModel.connected ? "ok" : "neutral"
+        Text {
+            visible: dataModel.machineType.length > 0 || dataModel.deviceId.length > 0
+            text: dataModel.machineType.length > 0
+                  ? dataModel.machineType + " (" + (dataModel.deviceId.length > 0 ? dataModel.deviceId : "Waiting for UID") + ")"
+                  : "Waiting for UID"
+            color: Theme.muted
+            font.pixelSize: 13
+            elide: Text.ElideRight
+            Layout.maximumWidth: root.compact ? 280 : 420
             Layout.alignment: Qt.AlignVCenter
         }
 
@@ -47,14 +53,14 @@ Rectangle {
             Layout.alignment: Qt.AlignVCenter
 
             ControlButton {
-                text: Theme.lightMode ? "Dark Mode" : "Light Mode"
-                onClicked: root.themeToggleClicked()
+                text: dataModel.connected ? "Disconnect" : "Connect"
+                primary: dataModel.connected
+                onClicked: root.connectionToggled()
             }
 
             ControlButton {
-                text: dataModel.connected ? "Disconnect" : "Connect UART"
-                enabled: dataModel.connected || dataModel.selectedPort.length > 0
-                onClicked: root.connectionToggled()
+                text: Theme.lightMode ? "Dark Mode" : "Light Mode"
+                onClicked: root.themeToggleClicked()
             }
 
             ControlButton {

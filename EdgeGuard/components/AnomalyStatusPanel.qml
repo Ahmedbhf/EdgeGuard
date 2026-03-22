@@ -81,8 +81,8 @@ Item {
 
                     ValueCard {
                         Layout.fillWidth: true
-                        label: "Current RMS"
-                        value: dataModel.rms.toFixed(2)
+                        label: "Anomaly Score"
+                        value: dataModel.anomalyScore.toFixed(2)
                         sizeVariant: "large"
                     }
 

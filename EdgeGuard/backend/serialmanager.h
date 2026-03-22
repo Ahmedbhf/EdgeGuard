@@ -6,7 +6,6 @@
 #include <QSerialPort>
 #include <QSerialPortInfo>
 #include <QStringList>
-#include <QTimer>
 #include <QVector>
 
 class SerialManager : public QObject
@@ -31,13 +30,12 @@ public:
 signals:
     void portsChanged();
     void connectedChanged();
-    void packetReceived(double x, double y, double z, double temp, const QString &stateText);
+    void deviceIdReceived(const QString &deviceId);
+    void packetReceived(double anomalyScore, double x, double y, double z, double temp, const QString &stateText);
     void errorOccurred(const QString &message);
 
 private slots:
     void onReadyRead();
-    void onError(QSerialPort::SerialPortError error);
-    void onTimeout();
 
 private:
     struct PortEntry { QString name; QString label; };
@@ -46,7 +44,6 @@ private:
 
     QSerialPort m_port;
     QByteArray m_buffer;
-    QTimer m_timeout;
     QVector<PortEntry> m_ports;
 };
 

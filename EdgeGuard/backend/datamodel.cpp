@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QStandardPaths>
+#include <QTextStream>
 #include <QTime>
 #include <cmath>
 
@@ -18,6 +19,12 @@ void trim(QVector<double> &values, double value, int max)
 }
 DataModel::DataModel(QObject *parent) : QObject(parent), m_serial(new SerialManager(this))
 {
+    connect(m_serial, &SerialManager::deviceIdReceived, this, [this](const QString &deviceId) {
+        if (m_deviceId.isEmpty())
+            setDeviceId(deviceId);
+        if (m_machineType.isEmpty())
+            setMachineType(QStringLiteral("DC Motor"));
+    });
     connect(m_serial, &SerialManager::packetReceived, this, &DataModel::onPacketReceived);
     connect(m_serial, &SerialManager::errorOccurred, this, [this](const QString &text) { appendLog(text); });
     connect(m_serial, &SerialManager::portsChanged, this, &DataModel::syncPorts);
@@ -51,6 +58,25 @@ void DataModel::setSelectedPort(const QString &portName)
     m_selectedPort = port;
     emit selectedPortChanged();
 }
+
+void DataModel::setMachineType(const QString &machineType)
+{
+    const QString trimmedMachineType = machineType.trimmed();
+    if (m_machineType == trimmedMachineType)
+        return;
+    m_machineType = trimmedMachineType;
+    emit machineTypeChanged();
+}
+
+void DataModel::setDeviceId(const QString &deviceId)
+{
+    const QString trimmedDeviceId = deviceId.trimmed();
+    if (m_deviceId == trimmedDeviceId)
+        return;
+    m_deviceId = trimmedDeviceId;
+    emit deviceIdChanged();
+}
+
 void DataModel::openCsvFile()
 {
     if (m_csvPath.isEmpty() || !QFileInfo::exists(m_csvPath))
@@ -89,16 +115,35 @@ QString DataModel::readTextFile(const QUrl &fileUrl) const
     return QString::fromUtf8(file.readAll());
 }
 
-void DataModel::onPacketReceived(double x, double y, double z, double temp, const QString &stateText)
+QString DataModel::readTextFileLimited(const QUrl &fileUrl, int maxLines) const
 {
-    processSample(x, y, z, temp, stateText);
+    const QString path = fileUrl.isLocalFile() ? fileUrl.toLocalFile() : fileUrl.toString();
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return QString();
+
+    QTextStream stream(&file);
+    QStringList lines;
+    int count = 0;
+    while (!stream.atEnd() && count < maxLines) {
+        lines.append(stream.readLine());
+        ++count;
+    }
+
+    return lines.join('\n');
 }
 
-void DataModel::processSample(double x, double y, double z, double temp, const QString &stateText)
+void DataModel::onPacketReceived(double anomalyScore, double x, double y, double z, double temp, const QString &stateText)
+{
+    processSample(anomalyScore, x, y, z, temp, stateText);
+}
+
+void DataModel::processSample(double anomalyScore, double x, double y, double z, double temp, const QString &stateText)
 {
     const QString nextState = stateText.trimmed();
     const bool stateUpdated = nextState != m_state;
     m_state = nextState;
+    m_anomalyScore = anomalyScore;
     m_x = x; m_y = y; m_z = z; m_temp = temp;
     updateMetrics();
     m_windowRmsSquareSum += (m_rms * m_rms);

@@ -71,7 +71,7 @@ Rectangle {
                         values: dataModel.vibrationValues
                         unit: "mg"
                         showUnitLabel: false
-                        displayPoints: 300
+                        displayPoints: 120
                         sampleRateHz: 20.0
                         lineColor: "#86BBFF"
                         anomalyActive: dataModel.state === "ANOMALY"
@@ -106,7 +106,7 @@ Rectangle {
                         values: dataModel.temperatureValues
                         unit: "\u00B0C"
                         showUnitLabel: false
-                        displayPoints: 300
+                        displayPoints: 120
                         sampleRateHz: 20.0
                         lineColor: "#F6AD55"
                         anomalyActive: dataModel.state === "ANOMALY"

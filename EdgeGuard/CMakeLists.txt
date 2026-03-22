@@ -15,6 +15,7 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(appEdgeGuard
     main.cpp
+    assets/assets.qrc
 )
 
 set_source_files_properties(theme/Theme.qml
@@ -27,6 +28,8 @@ qt_add_qml_module(appEdgeGuard
 
     QML_FILES
         Main.qml
+        SetupPage.qml
+        Dashboard.qml
         HistoryPage.qml
         components/HistoryChart.qml
         components/DashboardHeaderBar.qml
@@ -41,6 +44,14 @@ qt_add_qml_module(appEdgeGuard
         components/LiveTrendChart.qml
         components/EventLogPanel.qml
         theme/Theme.qml
+
+    RESOURCES
+        assets/motor.jpg
+        assets/pump.jpeg
+        assets/gearbox.jpeg
+        assets/compresor.jpeg
+        assets/grid.jpeg
+        assets/other.jpeg
 
     SOURCES
         backend/datamodel.h

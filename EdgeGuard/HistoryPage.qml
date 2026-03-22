@@ -24,6 +24,7 @@ Rectangle {
     property real tempMaxY: 1
     property var rmsPoints: []
     property var tempPoints: []
+    readonly property int maxCsvRows: 5000
 
     function openHistoryFile() {
         fileDialog.open()
@@ -115,7 +116,7 @@ Rectangle {
     }
 
     function loadCsv(fileUrl) {
-        var csvText = dataModel.readTextFile(fileUrl)
+        var csvText = dataModel.readTextFileLimited(fileUrl, root.maxCsvRows + 1)
         if (!csvText || csvText.length === 0) {
             statusText = "Could not read the selected CSV file."
             dataLoaded = false
@@ -212,7 +213,7 @@ Rectangle {
         rmsPoints = nextRmsPoints
         tempPoints = nextTempPoints
         dataLoaded = true
-        statusText = rmsValues.length + " samples loaded. Hover to inspect points, drag horizontally to scroll, and use the mouse wheel to zoom."
+        statusText = rmsValues.length + " samples loaded (showing up to " + root.maxCsvRows + "). Hover to inspect points, drag horizontally to scroll, and use the mouse wheel to zoom."
     }
 
     Component.onCompleted: Qt.callLater(openHistoryFile)
