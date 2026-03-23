@@ -12,18 +12,31 @@ Item {
     property real rmsMaxY: 1
     property real tempMinY: 0
     property real tempMaxY: 1
-    property real viewStartMs: 0
-    property real viewEndMs: 1000
+    property real fullStartMs: 0
+    property real fullEndMs: 1000
+    property real minimumWindowMs: 1000
     property bool interactiveEnabled: false
 
-    signal panRequested(real pixelDelta, real chartWidth)
-    signal zoomRequested(real factor)
+    property bool synchronizingRange: false
+
+    function syncVisibleRange(startMs, endMs, sourcePanel) {
+        if (synchronizingRange)
+            return
+
+        synchronizingRange = true
+        if (sourcePanel !== rmsPanel)
+            rmsPanel.setVisibleRange(startMs, endMs)
+        if (sourcePanel !== tempPanel)
+            tempPanel.setVisibleRange(startMs, endMs)
+        synchronizingRange = false
+    }
 
     ColumnLayout {
         anchors.fill: parent
         spacing: 16
 
         HistoryChartPanel {
+            id: rmsPanel
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.verticalStretchFactor: 1
@@ -36,14 +49,15 @@ Item {
             points: root.rmsPoints
             axisMinY: root.rmsMinY
             axisMaxY: root.rmsMaxY
-            viewStartMs: root.viewStartMs
-            viewEndMs: root.viewEndMs
+            fullStartMs: root.fullStartMs
+            fullEndMs: root.fullEndMs
+            minimumWindowMs: root.minimumWindowMs
             interactiveEnabled: root.interactiveEnabled
-            onPanRequested: function(pixelDelta, chartWidth) { root.panRequested(pixelDelta, chartWidth) }
-            onZoomRequested: function(factor) { root.zoomRequested(factor) }
+            onVisibleRangeChanged: function(startMs, endMs) { root.syncVisibleRange(startMs, endMs, rmsPanel) }
         }
 
         HistoryChartPanel {
+            id: tempPanel
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.verticalStretchFactor: 1
@@ -55,11 +69,11 @@ Item {
             points: root.tempPoints
             axisMinY: root.tempMinY
             axisMaxY: root.tempMaxY
-            viewStartMs: root.viewStartMs
-            viewEndMs: root.viewEndMs
+            fullStartMs: root.fullStartMs
+            fullEndMs: root.fullEndMs
+            minimumWindowMs: root.minimumWindowMs
             interactiveEnabled: root.interactiveEnabled
-            onPanRequested: function(pixelDelta, chartWidth) { root.panRequested(pixelDelta, chartWidth) }
-            onZoomRequested: function(factor) { root.zoomRequested(factor) }
+            onVisibleRangeChanged: function(startMs, endMs) { root.syncVisibleRange(startMs, endMs, tempPanel) }
         }
     }
 }

@@ -17,14 +17,14 @@ Rectangle {
     property string valueFormat: "%.2f"
     property int valueDecimals: 2
     property var points: []
-    property real viewStartMs: 0
-    property real viewEndMs: 1000
+    property real fullStartMs: 0
+    property real fullEndMs: 1000
+    property real minimumWindowMs: 1000
     property real axisMinY: 0
     property real axisMaxY: 1
     property bool interactiveEnabled: false
 
-    signal panRequested(real pixelDelta, real chartWidth)
-    signal zoomRequested(real factor)
+    signal visibleRangeChanged(real startMs, real endMs)
 
     function resetHover() {
         // Clear the hover marker and tooltip when the pointer leaves the chart.
@@ -80,6 +80,51 @@ Rectangle {
     function refreshSeries() {
         resetHover()
         populateSeries()
+        if (hasPoints())
+            setVisibleRange(fullStartMs, fullEndMs)
+    }
+
+    function setVisibleRange(startMs, endMs) {
+        if (!hasPoints())
+            return
+
+        axisX.min = new Date(startMs)
+        axisX.max = new Date(endMs)
+        axisY.min = axisMinY
+        axisY.max = axisMaxY
+    }
+
+    function constrainVisibleRange(shouldEmit) {
+        if (!hasPoints())
+            return
+
+        var startMs = axisX.min.getTime()
+        var endMs = axisX.max.getTime()
+        var fullSpan = Math.max(1, fullEndMs - fullStartMs)
+        var span = Math.max(minimumWindowMs, endMs - startMs)
+
+        if (span >= fullSpan) {
+            startMs = fullStartMs
+            endMs = fullEndMs
+        } else {
+            var center = (startMs + endMs) / 2
+            startMs = center - span / 2
+            endMs = center + span / 2
+
+            if (startMs < fullStartMs) {
+                startMs = fullStartMs
+                endMs = startMs + span
+            }
+
+            if (endMs > fullEndMs) {
+                endMs = fullEndMs
+                startMs = endMs - span
+            }
+        }
+
+        setVisibleRange(startMs, endMs)
+        if (shouldEmit)
+            visibleRangeChanged(startMs, endMs)
     }
 
     function updateHover(mouseX, mouseY) {
@@ -132,6 +177,11 @@ Rectangle {
     }
 
     onPointsChanged: refreshSeries()
+    onFullStartMsChanged: if (hasPoints()) setVisibleRange(fullStartMs, fullEndMs)
+    onFullEndMsChanged: if (hasPoints()) setVisibleRange(fullStartMs, fullEndMs)
+    onMinimumWindowMsChanged: constrainVisibleRange(false)
+    onAxisMinYChanged: axisY.min = axisMinY
+    onAxisMaxYChanged: axisY.max = axisMaxY
 
     ColumnLayout {
         anchors.fill: parent
@@ -160,8 +210,8 @@ Rectangle {
 
             DateTimeAxis {
                 id: axisX
-                min: new Date(root.viewStartMs)
-                max: new Date(root.viewEndMs)
+                min: new Date(root.fullStartMs)
+                max: new Date(root.fullEndMs)
                 format: "HH:mm:ss"
                 tickCount: 6
                 labelsColor: Theme.text
@@ -206,8 +256,13 @@ Rectangle {
 
                 onPositionChanged: function(mouse) {
                     if (mouse.buttons & Qt.LeftButton) {
-                        // Dragging sends pan requests to the parent page, which owns the current time window.
-                        root.panRequested(mouse.x - dragStartX, width)
+                        // Built-in chart scrolling keeps the drag behavior responsive without custom time math.
+                        var delta = mouse.x - dragStartX
+                        if (delta > 0)
+                            chart.scrollLeft(delta)
+                        else if (delta < 0)
+                            chart.scrollRight(-delta)
+                        root.constrainVisibleRange(true)
                         dragStartX = mouse.x
                     } else {
                         root.updateHover(mouse.x, mouse.y)
@@ -221,8 +276,13 @@ Rectangle {
                 onExited: root.resetHover()
 
                 onWheel: function(wheel) {
-                    // Mouse wheel zoom is also handled by the parent so both charts stay aligned.
-                    root.zoomRequested(wheel.angleDelta.y > 0 ? 0.8 : 1.25)
+                    // Use Qt Charts' built-in zoom methods, then clamp back to the loaded history extent.
+                    if (wheel.angleDelta.y > 0)
+                        chart.zoomIn()
+                    else if (wheel.angleDelta.y < 0)
+                        chart.zoomOut()
+                    root.constrainVisibleRange(true)
+                    root.updateHover(wheel.x, wheel.y)
                     wheel.accepted = true
                 }
             }

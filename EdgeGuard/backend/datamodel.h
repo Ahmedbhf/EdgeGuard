@@ -52,7 +52,6 @@ public:
 
     Q_INVOKABLE void connectToPort(const QString &portName);
     Q_INVOKABLE void disconnectPort();
-    Q_INVOKABLE void toggleConnection();
     Q_INVOKABLE void refreshPorts() { m_serial->refreshPorts(); }
     Q_INVOKABLE void setSelectedPort(const QString &portName);
     void setMachineType(const QString &machineType);
@@ -61,7 +60,6 @@ public:
     Q_INVOKABLE void openCsvFile();
     Q_INVOKABLE void startLogging();
     Q_INVOKABLE void stopLogging();
-    Q_INVOKABLE QString readTextFile(const QUrl &fileUrl) const;
     Q_INVOKABLE QString readTextFileLimited(const QUrl &fileUrl, int maxLines) const;
 
 signals:

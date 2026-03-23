@@ -53,7 +53,6 @@ void DataModel::connectToPort(const QString &portName)
     appendLog(QStringLiteral("Connected to %1").arg(port));
 }
 void DataModel::disconnectPort() { if (connected()) m_serial->disconnectPort(); }
-void DataModel::toggleConnection() { connected() ? disconnectPort() : connectToPort(m_selectedPort); }
 
 void DataModel::setSelectedPort(const QString &portName)
 {
@@ -110,15 +109,6 @@ void DataModel::stopLogging()
         return;
     stopCsv();
     appendLog(QStringLiteral("Logging stopped"));
-}
-
-QString DataModel::readTextFile(const QUrl &fileUrl) const
-{
-    const QString path = fileUrl.isLocalFile() ? fileUrl.toLocalFile() : fileUrl.toString();
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        return QString();
-    return QString::fromUtf8(file.readAll());
 }
 
 QString DataModel::readTextFileLimited(const QUrl &fileUrl, int maxLines) const

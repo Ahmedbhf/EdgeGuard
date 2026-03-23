@@ -15,8 +15,6 @@ Rectangle {
     property string statusText: "Select a CSV file to view history."
     property real fullStartMs: 0
     property real fullEndMs: 1000
-    property real viewStartMs: 0
-    property real viewEndMs: 1000
     property real minWindowMs: 1000
     property real rmsMinY: 0
     property real rmsMaxY: 1
@@ -72,47 +70,6 @@ Rectangle {
             min: Math.max(0, minValue - spread * 0.12),
             max: maxValue + spread * 0.12
         }
-    }
-
-    function setViewRange(startMs, endMs) {
-        var span = Math.max(minWindowMs, endMs - startMs)
-        var boundedStart = startMs
-        var boundedEnd = endMs
-
-        if (span >= (fullEndMs - fullStartMs)) {
-            boundedStart = fullStartMs
-            boundedEnd = fullEndMs
-        } else {
-            if (boundedStart < fullStartMs) {
-                boundedStart = fullStartMs
-                boundedEnd = boundedStart + span
-            }
-            if (boundedEnd > fullEndMs) {
-                boundedEnd = fullEndMs
-                boundedStart = boundedEnd - span
-            }
-        }
-
-        viewStartMs = boundedStart
-        viewEndMs = boundedEnd
-    }
-
-    function zoom(factor) {
-        if (!dataLoaded)
-            return
-
-        var center = (viewStartMs + viewEndMs) / 2
-        var span = Math.max(minWindowMs, (viewEndMs - viewStartMs) * factor)
-        setViewRange(center - span / 2, center + span / 2)
-    }
-
-    function pan(pixelDelta, chartWidth) {
-        if (!dataLoaded)
-            return
-
-        var span = viewEndMs - viewStartMs
-        var shift = -(pixelDelta / Math.max(1, chartWidth)) * span
-        setViewRange(viewStartMs + shift, viewEndMs + shift)
     }
 
     function loadCsv(fileUrl) {
@@ -194,12 +151,9 @@ Rectangle {
         var lastMs = previousMs > firstMs ? previousMs : firstMs + 1000
         fullStartMs = firstMs
         fullEndMs = lastMs
-        viewStartMs = firstMs
-        viewEndMs = lastMs
         minWindowMs = Math.max(1000, (fullEndMs - fullStartMs) / Math.min(20, rmsValues.length))
         if (fullEndMs === fullStartMs) {
             fullEndMs += 1000
-            viewEndMs = fullEndMs
         }
 
         var rmsRange = computeRange(rmsValues)
@@ -270,11 +224,7 @@ Rectangle {
             rmsMaxY: root.rmsMaxY
             tempMinY: root.tempMinY
             tempMaxY: root.tempMaxY
-            viewStartMs: root.viewStartMs
-            viewEndMs: root.viewEndMs
             interactiveEnabled: root.dataLoaded
-            onPanRequested: function(pixelDelta, chartWidth) { root.pan(pixelDelta, chartWidth) }
-            onZoomRequested: function(factor) { root.zoom(factor) }
         }
     }
 }
