@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import "../utils/HistoryChartUtils.js" as HistoryChartUtils
 import EdgeGuard
 
 Item {
@@ -18,18 +19,6 @@ Item {
     property bool interactiveEnabled: false
 
     property bool synchronizingRange: false
-
-    function syncVisibleRange(startMs, endMs, sourcePanel) {
-        if (synchronizingRange)
-            return
-
-        synchronizingRange = true
-        if (sourcePanel !== rmsPanel)
-            rmsPanel.setVisibleRange(startMs, endMs)
-        if (sourcePanel !== tempPanel)
-            tempPanel.setVisibleRange(startMs, endMs)
-        synchronizingRange = false
-    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -53,7 +42,14 @@ Item {
             fullEndMs: root.fullEndMs
             minimumWindowMs: root.minimumWindowMs
             interactiveEnabled: root.interactiveEnabled
-            onVisibleRangeChanged: function(startMs, endMs) { root.syncVisibleRange(startMs, endMs, rmsPanel) }
+            onVisibleRangeChanged: function(startMs, endMs) {
+                if (root.synchronizingRange)
+                    return
+
+                root.synchronizingRange = true
+                HistoryChartUtils.syncVisibleRange(startMs, endMs, rmsPanel, rmsPanel, tempPanel)
+                root.synchronizingRange = false
+            }
         }
 
         HistoryChartPanel {
@@ -73,7 +69,14 @@ Item {
             fullEndMs: root.fullEndMs
             minimumWindowMs: root.minimumWindowMs
             interactiveEnabled: root.interactiveEnabled
-            onVisibleRangeChanged: function(startMs, endMs) { root.syncVisibleRange(startMs, endMs, tempPanel) }
+            onVisibleRangeChanged: function(startMs, endMs) {
+                if (root.synchronizingRange)
+                    return
+
+                root.synchronizingRange = true
+                HistoryChartUtils.syncVisibleRange(startMs, endMs, tempPanel, rmsPanel, tempPanel)
+                root.synchronizingRange = false
+            }
         }
     }
 }

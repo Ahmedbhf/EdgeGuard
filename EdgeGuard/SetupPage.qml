@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
+import "components"
 import EdgeGuard
 
 Page {
@@ -83,29 +84,16 @@ Page {
                 font.pixelSize: 14
             }
 
-            Button {
+            ControlButton {
                 id: connectButton
                 text: "Connect Device"
                 width: 200
                 height: 44
+                primary: true
                 onClicked: {
                     // Remember that the user started the connection flow so we can show waiting text.
                     root.connectionRequested = true
                     root.connectToDetectedPort()
-                }
-
-                background: Rectangle {
-                    radius: 14
-                    color: Theme.primary
-                }
-
-                contentItem: Text {
-                    text: connectButton.text
-                    color: Theme.primaryFg
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font.pixelSize: 14
-                    font.bold: true
                 }
             }
 
@@ -198,27 +186,14 @@ Page {
                 font.pixelSize: 13
             }
 
-            Button {
+            ControlButton {
                 id: continueButton
                 text: "Continue"
                 width: 200
                 height: 44
                 enabled: root.deviceConnected
+                primary: true
                 onClicked: root.continueToDashboard()
-
-                background: Rectangle {
-                    radius: 14
-                    color: continueButton.enabled ? Theme.primary : Theme.borderSoft
-                }
-
-                contentItem: Text {
-                    text: continueButton.text
-                    color: Theme.primaryFg
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font.pixelSize: 14
-                    font.bold: true
-                }
             }
         }
     }

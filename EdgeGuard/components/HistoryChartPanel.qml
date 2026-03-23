@@ -2,16 +2,23 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtCharts
+import "../utils/HistoryChartUtils.js" as HistoryChartUtils
 import EdgeGuard
 
-Rectangle {
+PanelCard {
     id: root
-    radius: 16
-    color: Theme.panel
-    border.color: Theme.borderSoft
-    border.width: 1
 
-    property string chartTitle: ""
+    property alias chartTitle: root.title
+    property alias chartView: chart
+    property alias xAxis: axisX
+    property alias yAxis: axisY
+    property alias lineSeriesRef: lineSeries
+    property alias highlightSeriesRef: highlightSeries
+    property alias hoverLineRef: hoverLine
+    property alias hoverCardRef: hoverCard
+    property alias hoverTimeRef: hoverTime
+    property alias hoverValueRef: hoverValue
+    property alias contentAreaRef: contentArea
     property color lineColor: Theme.primary
     property string valueLabel: ""
     property string valueFormat: "%.2f"
@@ -25,180 +32,38 @@ Rectangle {
     property bool interactiveEnabled: false
 
     signal visibleRangeChanged(real startMs, real endMs)
-
-    function resetHover() {
-        // Clear the hover marker and tooltip when the pointer leaves the chart.
-        highlightSeries.clear()
-        hoverLine.visible = false
-        hoverCard.visible = false
-    }
-
-    function hasPoints() {
-        return points && points.length > 0
-    }
-
-    function populateSeries() {
-        lineSeries.clear()
-        if (!hasPoints())
-            return
-
-        // Convert the QML array into QtCharts points every time the source data changes.
-        for (var i = 0; i < points.length; ++i)
-            lineSeries.append(points[i].x, points[i].y)
-    }
-
-    function nearestIndex(targetX) {
-        if (!hasPoints())
-            return -1
-
-        // Binary search is faster than scanning every point when the history list gets larger.
-        var left = 0
-        var right = points.length - 1
-        while (left < right) {
-            var mid = Math.floor((left + right) / 2)
-            if (points[mid].x < targetX)
-                left = mid + 1
-            else
-                right = mid
-        }
-
-        var candidate = left
-        if (candidate > 0 && Math.abs(points[candidate - 1].x - targetX) < Math.abs(points[candidate].x - targetX))
-            candidate -= 1
-        return candidate
-    }
-
-    function inPlotArea(plot, mouseX, mouseY) {
-        return mouseX >= plot.x && mouseX <= plot.x + plot.width
-                && mouseY >= plot.y && mouseY <= plot.y + plot.height
-    }
-
-    function clamp(value, minValue, maxValue) {
-        return Math.max(minValue, Math.min(maxValue, value))
-    }
-
-    function refreshSeries() {
-        resetHover()
-        populateSeries()
-        if (hasPoints())
-            setVisibleRange(fullStartMs, fullEndMs)
-    }
-
-    function setVisibleRange(startMs, endMs) {
-        if (!hasPoints())
-            return
-
-        axisX.min = new Date(startMs)
-        axisX.max = new Date(endMs)
-        axisY.min = axisMinY
-        axisY.max = axisMaxY
-    }
-
-    function constrainVisibleRange(shouldEmit) {
-        if (!hasPoints())
-            return
-
-        var startMs = axisX.min.getTime()
-        var endMs = axisX.max.getTime()
-        var fullSpan = Math.max(1, fullEndMs - fullStartMs)
-        var span = Math.max(minimumWindowMs, endMs - startMs)
-
-        if (span >= fullSpan) {
-            startMs = fullStartMs
-            endMs = fullEndMs
-        } else {
-            var center = (startMs + endMs) / 2
-            startMs = center - span / 2
-            endMs = center + span / 2
-
-            if (startMs < fullStartMs) {
-                startMs = fullStartMs
-                endMs = startMs + span
-            }
-
-            if (endMs > fullEndMs) {
-                endMs = fullEndMs
-                startMs = endMs - span
-            }
-        }
-
-        setVisibleRange(startMs, endMs)
-        if (shouldEmit)
-            visibleRangeChanged(startMs, endMs)
-    }
-
-    function updateHover(mouseX, mouseY) {
-        // The tooltip follows the point closest to the mouse inside the chart plot area.
-        if (!interactiveEnabled || !hasPoints()) {
-            resetHover()
-            return
-        }
-
-        var plot = chart.plotArea
-        if (!inPlotArea(plot, mouseX, mouseY)) {
-            resetHover()
-            return
-        }
-
-        var mapped = chart.mapToValue(Qt.point(mouseX, mouseY), lineSeries)
-        var index = nearestIndex(mapped.x)
-        if (index < 0) {
-            resetHover()
-            return
-        }
-
-        var point = points[index]
-        var scenePoint = chart.mapToPosition(Qt.point(point.x, point.y), lineSeries)
-
-        highlightSeries.clear()
-        highlightSeries.append(point.x, point.y)
-
-        hoverLine.visible = true
-        hoverLine.x = clamp(scenePoint.x - hoverLine.width / 2,
-                            plot.x,
-                            plot.x + plot.width - hoverLine.width)
-        hoverLine.y = plot.y
-        hoverLine.height = plot.height
-
-        hoverCard.visible = true
-        hoverTime.text = Qt.formatDateTime(new Date(point.x), "HH:mm:ss")
-        hoverValue.text = valueLabel + ": " + point.y.toFixed(valueDecimals)
-
-        var desiredX = scenePoint.x + 14
-        var maxX = width - hoverCard.width - 12
-        if (desiredX > maxX)
-            desiredX = scenePoint.x - hoverCard.width - 14
-        hoverCard.x = clamp(desiredX, 12, maxX)
-
-        var desiredY = scenePoint.y - hoverCard.height - 12
-        if (desiredY < 12)
-            desiredY = scenePoint.y + 12
-        hoverCard.y = clamp(desiredY, 12, height - hoverCard.height - 12)
-    }
-
-    onPointsChanged: refreshSeries()
-    onFullStartMsChanged: if (hasPoints()) setVisibleRange(fullStartMs, fullEndMs)
-    onFullEndMsChanged: if (hasPoints()) setVisibleRange(fullStartMs, fullEndMs)
-    onMinimumWindowMsChanged: constrainVisibleRange(false)
+    onPointsChanged: HistoryChartUtils.refreshSeries(lineSeries,
+                                                     points,
+                                                     highlightSeries,
+                                                     hoverLine,
+                                                     hoverCard,
+                                                     axisX,
+                                                     axisY,
+                                                     axisMinY,
+                                                     axisMaxY,
+                                                     fullStartMs,
+                                                     fullEndMs)
+    onFullStartMsChanged: HistoryChartUtils.setVisibleRange(axisX, axisY, points, axisMinY, axisMaxY, fullStartMs, fullEndMs)
+    onFullEndMsChanged: HistoryChartUtils.setVisibleRange(axisX, axisY, points, axisMinY, axisMaxY, fullStartMs, fullEndMs)
+    onMinimumWindowMsChanged: HistoryChartUtils.constrainVisibleRange(axisX,
+                                                                      axisY,
+                                                                      points,
+                                                                      axisMinY,
+                                                                      axisMaxY,
+                                                                      fullStartMs,
+                                                                      fullEndMs,
+                                                                      minimumWindowMs)
     onAxisMinYChanged: axisY.min = axisMinY
     onAxisMaxYChanged: axisY.max = axisMaxY
 
-    ColumnLayout {
+    Item {
+        id: contentArea
         anchors.fill: parent
-        anchors.margins: 16
-        spacing: 12
-
-        Label {
-            text: root.chartTitle
-            color: Theme.text
-            font.pixelSize: 14
-            font.weight: Font.DemiBold
-        }
 
         ChartView {
             id: chart
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            anchors.fill: parent
+            anchors.margins: 16
             antialiasing: true
             legend.visible: false
             backgroundColor: Theme.panel2
@@ -262,18 +127,55 @@ Rectangle {
                             chart.scrollLeft(delta)
                         else if (delta < 0)
                             chart.scrollRight(-delta)
-                        root.constrainVisibleRange(true)
+                        var constrainedRange = HistoryChartUtils.constrainVisibleRange(axisX,
+                                                                                       axisY,
+                                                                                       points,
+                                                                                       axisMinY,
+                                                                                       axisMaxY,
+                                                                                       fullStartMs,
+                                                                                       fullEndMs,
+                                                                                       minimumWindowMs)
+                        if (constrainedRange)
+                            root.visibleRangeChanged(constrainedRange.startMs, constrainedRange.endMs)
                         dragStartX = mouse.x
                     } else {
-                        root.updateHover(mouse.x, mouse.y)
+                        HistoryChartUtils.updateHover(chart,
+                                                      lineSeries,
+                                                      points,
+                                                      interactiveEnabled,
+                                                      highlightSeries,
+                                                      hoverLine,
+                                                      hoverCard,
+                                                      hoverTime,
+                                                      hoverValue,
+                                                      valueLabel,
+                                                      valueDecimals,
+                                                      contentArea.width,
+                                                      contentArea.height,
+                                                      mouse.x,
+                                                      mouse.y)
                     }
                 }
 
                 onReleased: function(mouse) {
-                    root.updateHover(mouse.x, mouse.y)
+                    HistoryChartUtils.updateHover(chart,
+                                                  lineSeries,
+                                                  points,
+                                                  interactiveEnabled,
+                                                  highlightSeries,
+                                                  hoverLine,
+                                                  hoverCard,
+                                                  hoverTime,
+                                                  hoverValue,
+                                                  valueLabel,
+                                                  valueDecimals,
+                                                  contentArea.width,
+                                                  contentArea.height,
+                                                  mouse.x,
+                                                  mouse.y)
                 }
 
-                onExited: root.resetHover()
+                onExited: HistoryChartUtils.resetHover(highlightSeries, hoverLine, hoverCard)
 
                 onWheel: function(wheel) {
                     // Use Qt Charts' built-in zoom methods, then clamp back to the loaded history extent.
@@ -281,8 +183,31 @@ Rectangle {
                         chart.zoomIn()
                     else if (wheel.angleDelta.y < 0)
                         chart.zoomOut()
-                    root.constrainVisibleRange(true)
-                    root.updateHover(wheel.x, wheel.y)
+                    var constrainedRange = HistoryChartUtils.constrainVisibleRange(axisX,
+                                                                                   axisY,
+                                                                                   points,
+                                                                                   axisMinY,
+                                                                                   axisMaxY,
+                                                                                   fullStartMs,
+                                                                                   fullEndMs,
+                                                                                   minimumWindowMs)
+                    if (constrainedRange)
+                        root.visibleRangeChanged(constrainedRange.startMs, constrainedRange.endMs)
+                    HistoryChartUtils.updateHover(chart,
+                                                  lineSeries,
+                                                  points,
+                                                  interactiveEnabled,
+                                                  highlightSeries,
+                                                  hoverLine,
+                                                  hoverCard,
+                                                  hoverTime,
+                                                  hoverValue,
+                                                  valueLabel,
+                                                  valueDecimals,
+                                                  contentArea.width,
+                                                  contentArea.height,
+                                                  wheel.x,
+                                                  wheel.y)
                     wheel.accepted = true
                 }
             }

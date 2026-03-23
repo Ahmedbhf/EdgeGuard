@@ -36,6 +36,8 @@ qt_add_qml_module(appEdgeGuard
         components/StatusBadge.qml
         components/ControlButton.qml
         components/HistoryChartPanel.qml
+        components/PanelCard.qml
+        components/StatusTile.qml
         components/ValueCard.qml
         components/MetricsOverviewPanel.qml
         components/AnomalyStatusPanel.qml
@@ -45,6 +47,9 @@ qt_add_qml_module(appEdgeGuard
         theme/Theme.qml
 
     RESOURCES
+        utils/HistoryUtils.js
+        utils/ChartUtils.js
+        utils/HistoryChartUtils.js
         assets/motor.jpg
         assets/pump.jpeg
         assets/gearbox.jpeg

@@ -3,6 +3,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import "components"
+import "utils/HistoryUtils.js" as HistoryUtils
+import "utils/ChartUtils.js" as ChartUtils
 import EdgeGuard
 
 Rectangle {
@@ -28,146 +30,33 @@ Rectangle {
         fileDialog.open()
     }
 
-    function parseTimestamp(text, sampleIndex) {
-        var trimmed = text.trim()
-        var direct = Date.parse(trimmed)
-        if (!isNaN(direct))
-            return direct
-
-        var parts = trimmed.split(":")
-        if (parts.length < 2)
-            return sampleIndex * 1000
-
-        var h = parseInt(parts[0], 10)
-        var m = parseInt(parts[1], 10)
-        var s = parts.length > 2 ? parseFloat(parts[2]) : 0
-        if (isNaN(h) || isNaN(m) || isNaN(s))
-            return sampleIndex * 1000
-
-        var base = new Date()
-        base.setHours(0, 0, 0, 0)
-        return base.getTime() + (((h * 60) + m) * 60 + s) * 1000
-    }
-
-    function computeRange(values) {
-        if (!values || values.length === 0)
-            return { min: 0, max: 1 }
-
-        var minValue = values[0]
-        var maxValue = values[0]
-        for (var i = 1; i < values.length; ++i) {
-            minValue = Math.min(minValue, values[i])
-            maxValue = Math.max(maxValue, values[i])
-        }
-
-        if (minValue === maxValue) {
-            var pad = Math.max(1, Math.abs(minValue) * 0.2)
-            return { min: minValue - pad, max: maxValue + pad }
-        }
-
-        var spread = maxValue - minValue
-        return {
-            min: Math.max(0, minValue - spread * 0.12),
-            max: maxValue + spread * 0.12
-        }
-    }
-
     function loadCsv(fileUrl) {
         var csvText = dataModel.readTextFileLimited(fileUrl, root.maxCsvRows + 1)
-        if (!csvText || csvText.length === 0) {
-            statusText = "Could not read the selected CSV file."
+        var parsed = HistoryUtils.parseCsv(csvText)
+        if (!parsed.ok) {
+            statusText = parsed.error
             dataLoaded = false
             rmsPoints = []
             tempPoints = []
             return
         }
 
-        var lines = csvText.split(/\r?\n/)
-        if (lines.length < 2) {
-            statusText = "CSV file is empty."
-            dataLoaded = false
-            rmsPoints = []
-            tempPoints = []
-            return
-        }
+        fullStartMs = parsed.fullStartMs
+        fullEndMs = parsed.fullEndMs
+        minWindowMs = parsed.minWindowMs
 
-        var headers = lines[0].split(",")
-        var timeIndex = headers.indexOf("time")
-        var rmsIndex = headers.indexOf("rms")
-        var tempIndex = headers.indexOf("temp")
-        if (timeIndex < 0 || rmsIndex < 0 || tempIndex < 0) {
-            statusText = "CSV must contain time, rms, and temp columns."
-            dataLoaded = false
-            rmsPoints = []
-            tempPoints = []
-            return
-        }
-
-        var rmsValues = []
-        var tempValues = []
-        var nextRmsPoints = []
-        var nextTempPoints = []
-        var firstMs = -1
-        var previousMs = -1
-        var dayOffsetMs = 0
-
-        for (var i = 1; i < lines.length; ++i) {
-            var line = lines[i].trim()
-            if (!line)
-                continue
-
-            var fields = line.split(",")
-            if (fields.length <= Math.max(timeIndex, rmsIndex, tempIndex))
-                continue
-
-            var rmsValue = parseFloat(fields[rmsIndex].trim())
-            var tempValue = parseFloat(fields[tempIndex].trim())
-            if (isNaN(rmsValue) || isNaN(tempValue))
-                continue
-
-            var rawMs = parseTimestamp(fields[timeIndex], rmsValues.length)
-            if (previousMs >= 0 && rawMs + dayOffsetMs < previousMs)
-                dayOffsetMs += 24 * 60 * 60 * 1000
-
-            var pointMs = rawMs + dayOffsetMs
-            if (firstMs < 0)
-                firstMs = pointMs
-            previousMs = pointMs
-
-            nextRmsPoints.push({ x: pointMs, y: rmsValue })
-            nextTempPoints.push({ x: pointMs, y: tempValue })
-            rmsValues.push(rmsValue)
-            tempValues.push(tempValue)
-        }
-
-        if (rmsValues.length === 0 || tempValues.length === 0) {
-            statusText = "No valid samples found in the CSV file."
-            dataLoaded = false
-            rmsPoints = []
-            tempPoints = []
-            return
-        }
-
-        var lastMs = previousMs > firstMs ? previousMs : firstMs + 1000
-        fullStartMs = firstMs
-        fullEndMs = lastMs
-        minWindowMs = Math.max(1000, (fullEndMs - fullStartMs) / Math.min(20, rmsValues.length))
-        if (fullEndMs === fullStartMs) {
-            fullEndMs += 1000
-        }
-
-        var rmsRange = computeRange(rmsValues)
+        var rmsRange = ChartUtils.computeRange(parsed.rmsValues)
         rmsMinY = rmsRange.min
         rmsMaxY = rmsRange.max
 
-        var tempRange = computeRange(tempValues)
+        var tempRange = ChartUtils.computeRange(parsed.tempValues)
         tempMinY = tempRange.min
         tempMaxY = tempRange.max
 
-        rmsPoints = nextRmsPoints
-        tempPoints = nextTempPoints
+        rmsPoints = parsed.rmsPoints
+        tempPoints = parsed.tempPoints
         dataLoaded = true
-        statusText = rmsValues.length + " samples loaded (showing up to " + root.maxCsvRows + "). Hover to inspect points, drag horizontally to scroll, and use the mouse wheel to zoom."
+        statusText = parsed.sampleCount + " samples loaded (showing up to " + root.maxCsvRows + "). Hover to inspect points, drag horizontally to scroll, and use the mouse wheel to zoom."
     }
 
     Component.onCompleted: Qt.callLater(openHistoryFile)
