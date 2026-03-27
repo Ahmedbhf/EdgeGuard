@@ -24,14 +24,23 @@ PanelCard {
             value: dataModel.rms.toFixed(2)
             sizeVariant: "hero"
         }
+        ValueCard {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.minimumHeight: 0
+            Layout.verticalStretchFactor: 1
+            label: "Machine Temp (°C)"
+            value: dataModel.temp.toFixed(1)
+            sizeVariant: "hero"
+        }
 
         ValueCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumHeight: 0
             Layout.verticalStretchFactor: 1
-            label: "Temperature (°C)"
-            value: dataModel.temp.toFixed(1)
+            label: "Ambient Temp (°C)"
+            value: dataModel.ambientTemp.toFixed(1)
             sizeVariant: "hero"
         }
     }

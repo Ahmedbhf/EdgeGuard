@@ -130,19 +130,19 @@ QString DataModel::readTextFileLimited(const QUrl &fileUrl, int maxLines) const
     return lines.join('\n');
 }
 
-void DataModel::onPacketReceived(double anomalyScore, double x, double y, double z, double temp, const QString &stateText)
+void DataModel::onPacketReceived(double anomalyScore, double x, double y, double z, double temp, double ambientTemp, const QString &stateText)
 {
-    processSample(anomalyScore, x, y, z, temp, stateText);
+    processSample(anomalyScore, x, y, z, temp, ambientTemp, stateText);
 }
 
-void DataModel::processSample(double anomalyScore, double x, double y, double z, double temp, const QString &stateText)
+void DataModel::processSample(double anomalyScore, double x, double y, double z, double temp, double ambientTemp, const QString &stateText)
 {
     // Store the newest raw values first so all later calculations use the same sample.
     const QString nextState = stateText.trimmed();
     const bool stateUpdated = nextState != m_state;
     m_state = nextState;
     m_anomalyScore = anomalyScore;
-    m_x = x; m_y = y; m_z = z; m_temp = temp;
+    m_x = x; m_y = y; m_z = z; m_temp = temp; m_ambientTemp = ambientTemp;
     updateMetrics();
     // These accumulators let us average short bursts of samples before refreshing the charts.
     m_windowRmsSquareSum += (m_rms * m_rms);
@@ -235,7 +235,7 @@ void DataModel::startCsv()
     emit loggingEnabledChanged();
     emit csvFilePathChanged();
     m_csvWritesSinceFlush = 0;
-    m_csv.write("time,rms,temp,state\n");
+    m_csv.write("time,rms,temp,ambient_temp,state\n");
     m_csv.flush();
     appendLog(QStringLiteral("CSV: %1").arg(m_csvPath));
 }
@@ -258,10 +258,11 @@ void DataModel::writeCsv()
     if (!m_loggingEnabled) return;
     if (!m_csv.isOpen()) return;
     // We write already-calculated values instead of raw axes because the dashboard shows the same summary values.
-    const QString line = QStringLiteral("%1,%2,%3,%4\n")
+    const QString line = QStringLiteral("%1,%2,%3,%4,%5\n")
                              .arg(QTime::currentTime().toString(QStringLiteral("HH:mm:ss")))
                              .arg(QString::number(m_rms, 'f', 4))
                              .arg(QString::number(m_temp, 'f', 1))
+                             .arg(QString::number(m_ambientTemp, 'f', 1))
                              .arg(m_state);
     m_csv.write(line.toUtf8());
     ++m_csvWritesSinceFlush;

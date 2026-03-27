@@ -17,6 +17,7 @@ class DataModel : public QObject
     Q_PROPERTY(double rms READ rms NOTIFY dataChanged)
     Q_PROPERTY(double anomalyScore READ anomalyScore NOTIFY dataChanged)
     Q_PROPERTY(double temp READ temp NOTIFY dataChanged)
+    Q_PROPERTY(double ambientTemp READ ambientTemp NOTIFY dataChanged)
     Q_PROPERTY(QVector<double> vibrationValues READ vibrationValues NOTIFY vibrationValuesChanged)
     Q_PROPERTY(QVector<double> temperatureValues READ temperatureValues NOTIFY temperatureValuesChanged)
     Q_PROPERTY(bool connected READ connected NOTIFY connectedChanged)
@@ -37,6 +38,7 @@ public:
     double rms() const { return m_rms; }
     double anomalyScore() const { return m_anomalyScore; }
     double temp() const { return m_temp; }
+    double ambientTemp() const { return m_ambientTemp; }
     QVector<double> vibrationValues() const { return m_vibration; }
     QVector<double> temperatureValues() const { return m_temperature; }
     bool connected() const { return m_serial->connected(); }
@@ -76,15 +78,15 @@ signals:
     void csvFilePathChanged();
     void loggingEnabledChanged();
 
-private slots:
+    private slots:
     // Raw serial packets arrive here first, then we turn them into app state.
-    void onPacketReceived(double anomalyScore, double x, double y, double z, double temp, const QString &stateText);
+    void onPacketReceived(double anomalyScore, double x, double y, double z, double temp, double ambientTemp, const QString &stateText);
     // This runs on a timer to push batched samples into the UI at a steady pace.
     void flushUiSamples();
 
-private:
+    private:
     // Updates all calculated values for one incoming sample.
-    void processSample(double anomalyScore, double x, double y, double z, double temp, const QString &stateText);
+    void processSample(double anomalyScore, double x, double y, double z, double temp, double ambientTemp, const QString &stateText);
     // Keeps the selected serial port in sync with the list from the OS.
     void syncPorts();
     // Handles UI state changes when the serial link connects or disconnects.
@@ -105,7 +107,7 @@ private:
     QString m_deviceId;
     QString m_state = QStringLiteral("OK");
     QString m_csvPath;
-    double m_x = 0.0, m_y = 0.0, m_z = 0.0, m_rms = 0.0, m_anomalyScore = 0.0, m_temp = 0.0;
+    double m_x = 0.0, m_y = 0.0, m_z = 0.0, m_rms = 0.0, m_anomalyScore = 0.0, m_temp = 0.0, m_ambientTemp = 0.0;
     QVector<double> m_vibration;
     QVector<double> m_temperature;
     QStringList m_logs;

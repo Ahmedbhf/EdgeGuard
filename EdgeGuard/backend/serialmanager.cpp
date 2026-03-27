@@ -81,32 +81,35 @@ void SerialManager::processLine(const QByteArray &line)
     if (str.isEmpty())
         return;
 
-    // UID lines identify the device and are handled separately from sensor packets.
-    if (str.startsWith(QStringLiteral("UID:"), Qt::CaseInsensitive)) {
-        const QString deviceId = str.mid(4).trimmed();
-        if (!deviceId.isEmpty())
-            emit deviceIdReceived(deviceId);
-        return;
-    }
-
     // Expected packet format:
-    // field 0..1 = unused here, field 2 = state, field 3..5 = x/y/z, field 6 = temperature.
+    // field 0 = UID hex string, field 1 = score, field 2..4 = x/y/z,
+    // field 5 = machine temperature, field 6 = ambient temperature.
     const QStringList fields = str.split(',');
     if (fields.size() != 7)
         return;
 
-    const QString stateText = fields[2].trimmed();
+    const QString deviceId = fields[0].trimmed();
+    if (!deviceId.isEmpty())
+        emit deviceIdReceived(deviceId);
+
+    bool scoreOk = false;
     bool xOk = false;
     bool yOk = false;
     bool zOk = false;
     bool tempOk = false;
-    const double x = fields[3].trimmed().toDouble(&xOk);
-    const double y = fields[4].trimmed().toDouble(&yOk);
-    const double z = fields[5].trimmed().toDouble(&zOk);
-    const double temp = fields[6].trimmed().toDouble(&tempOk);
+    bool ambientTempOk = false;
+
+    const double anomalyScore = fields[1].trimmed().toDouble(&scoreOk);
+    const double x = fields[2].trimmed().toDouble(&xOk);
+    const double y = fields[3].trimmed().toDouble(&yOk);
+    const double z = fields[4].trimmed().toDouble(&zOk);
+    const double temp = fields[5].trimmed().toDouble(&tempOk);
+    const double ambientTemp = fields[6].trimmed().toDouble(&ambientTempOk);
+
     // Ignore malformed lines quietly so one bad packet does not break the live stream.
-    if (!xOk || !yOk || !zOk || !tempOk)
+    if (!scoreOk || !xOk || !yOk || !zOk || !tempOk || !ambientTempOk)
         return;
 
-    emit packetReceived(0.0, x, y, z, temp, stateText);
+    const QString stateText = anomalyScore >= 80.0 ? QStringLiteral("OK") : QStringLiteral("ANOMALY");
+    emit packetReceived(anomalyScore, x, y, z, temp, ambientTemp, stateText);
 }

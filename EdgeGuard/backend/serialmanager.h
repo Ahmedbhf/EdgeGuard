@@ -32,7 +32,7 @@ signals:
     void portsChanged();
     void connectedChanged();
     void deviceIdReceived(const QString &deviceId);
-    void packetReceived(double anomalyScore, double x, double y, double z, double temp, const QString &stateText);
+    void packetReceived(double anomalyScore, double x, double y, double z, double temp, double ambientTemp, const QString &stateText);
     void errorOccurred(const QString &message);
 
 private slots:
