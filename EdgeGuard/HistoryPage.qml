@@ -113,6 +113,9 @@ Rectangle {
             rmsMaxY: root.rmsMaxY
             tempMinY: root.tempMinY
             tempMaxY: root.tempMaxY
+            fullStartMs: root.fullStartMs
+            fullEndMs: root.fullEndMs
+            minimumWindowMs: root.minWindowMs
             interactiveEnabled: root.dataLoaded
         }
     }
