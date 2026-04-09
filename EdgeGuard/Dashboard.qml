@@ -23,6 +23,9 @@ Item {
     readonly property color selectedAxisColor: selectedAxis === "X"
                                              ? "#86BBFF"
                                              : (selectedAxis === "Y" ? "#34D399" : "#F59E0B")
+    readonly property color faultTypeColor: appController.faultTypeTone === "fault"
+                                          ? Theme.fault
+                                          : (appController.faultTypeTone === "warning" ? Theme.warning : Theme.ok)
 
     function returnToSetup() {
         var stack = StackView.view
@@ -69,6 +72,20 @@ Item {
             anchors.bottomMargin: root.contentMargin
             spacing: Theme.spaceLg
 
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 120
+
+                ValueCard {
+                    anchors.fill: parent
+                    label: "Fault Type"
+                    value: appController.faultType
+                    valueColor: root.faultTypeColor
+                    valueWrapMode: Text.WordWrap
+                    sizeVariant: "large"
+                }
+            }
+
             RowLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -86,7 +103,7 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.minimumHeight: 0
-                        title: "Anomaly Score vs Time"
+                        title: "Similarity vs Time"
 
                         LiveTrendChart {
                             anchors.fill: parent
@@ -142,7 +159,7 @@ Item {
                         Layout.fillHeight: true
                         Layout.minimumHeight: 0
                         value: appController.anomalyScore
-                        label: "Anomaly Score"
+                        label: "Similarity"
                         zones: [
                             { from: 0, to: 40, color: "red" },
                             { from: 40, to: 80, color: "yellow" },
@@ -185,11 +202,26 @@ Item {
                     width: parent.width - root.contentMargin * 2
                     spacing: Theme.spaceMd
 
+                    Row {
+                        width: parent.width
+                        spacing: Theme.spaceMd
+
+                        ValueCard {
+                            width: parent.width
+                            height: 120
+                            label: "Fault Type"
+                            value: appController.faultType
+                            valueColor: root.faultTypeColor
+                            valueWrapMode: Text.WordWrap
+                            sizeVariant: "large"
+                        }
+                    }
+
                     GaugeCard {
                         width: parent.width
                         height: root.compactGaugeHeight
                         value: appController.anomalyScore
-                        label: "Anomaly Score"
+                        label: "Similarity"
                         zones: [
                             { from: 0, to: 40, color: "red" },
                             { from: 40, to: 80, color: "yellow" },
@@ -213,7 +245,7 @@ Item {
                     ChartCard {
                         width: parent.width
                         height: root.compactChartHeight
-                        title: "Anomaly Score vs Time"
+                        title: "Similarity vs Time"
 
                         LiveTrendChart {
                             anchors.fill: parent

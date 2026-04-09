@@ -68,7 +68,7 @@ Item {
             return "Acceleration " + selectedAccelerationAxis + " vs Time"
         if (selectedMetricIndex === 1)
             return "Temperature vs Time"
-        return "Anomaly Score vs Time"
+            return "Similarity vs Time"
     }
     readonly property string currentValueLabel: {
         if (showingAcceleration)
@@ -227,7 +227,7 @@ Item {
                 }
 
                 AxisSelectorCombo {
-                    model: ["Anomaly Score", "Temperature", "Acceleration"]
+            model: ["Similarity", "Temperature", "Acceleration"]
                     currentIndex: root.selectedMetricIndex
                     implicitWidth: 156
                     onActivated: function(index) {

@@ -14,6 +14,8 @@ Rectangle {
     property string label: ""
     property string value: ""
     property string sizeVariant: "normal"
+    property color valueColor: Theme.text
+    property int valueWrapMode: Text.NoWrap
 
     property int valueSize: sizeVariant === "hero" ? 48 : (sizeVariant === "large" ? 40 : 18)
     property int labelSize: sizeVariant === "hero" ? 15 : (sizeVariant === "large" ? 14 : 12)
@@ -34,9 +36,11 @@ Rectangle {
 
         Text {
             text: root.value
+            width: parent.width
             font.pixelSize: root.valueSize
             font.weight: Font.DemiBold
-            color: Theme.text
+            color: root.valueColor
+            wrapMode: root.valueWrapMode
         }
     }
 }

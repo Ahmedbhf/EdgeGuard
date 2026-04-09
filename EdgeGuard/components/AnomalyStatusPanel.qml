@@ -15,7 +15,7 @@ PanelCard {
 
         ValueCard {
             Layout.fillWidth: true
-            label: "Anomaly Score"
+            label: "Similarity"
             value: appController.anomalyScore.toFixed(2)
             sizeVariant: "large"
         }
