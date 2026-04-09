@@ -27,6 +27,8 @@ Page {
         color: Theme.bg
     }
 
+    Component.onCompleted: Qt.callLater(root.continueToDashboard)
+
     function continueToDashboard() {
         // Only continue after the device has identified itself through UART.
         if (!root.deviceConnected)

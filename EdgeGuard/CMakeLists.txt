@@ -39,11 +39,11 @@ qt_add_qml_module(appEdgeGuard
         components/PanelCard.qml
         components/StatusTile.qml
         components/ValueCard.qml
+        components/GaugeCard.qml
         components/MetricsOverviewPanel.qml
         components/AnomalyStatusPanel.qml
         components/LiveChartsPanel.qml
         components/LiveTrendChart.qml
-        components/EventLogPanel.qml
         theme/Theme.qml
 
     RESOURCES

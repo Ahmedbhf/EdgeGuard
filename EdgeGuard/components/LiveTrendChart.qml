@@ -25,12 +25,27 @@ Rectangle {
     readonly property color effectiveLineColor: anomalyActive ? "#EF4444" : lineColor
     readonly property color lineGlowColor: Qt.rgba(effectiveLineColor.r, effectiveLineColor.g, effectiveLineColor.b, 0.16)
     readonly property color horizontalGridColor: isDarkMode ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.08)
+    readonly property color verticalGridColor: isDarkMode ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.06)
     readonly property color axisTextColor: isDarkMode ? "#aeb6c2" : "#7b8794"
     readonly property color latestGlowColor: Qt.rgba(effectiveLineColor.r, effectiveLineColor.g, effectiveLineColor.b, 0.20)
     readonly property real effectiveMaxY: fixedMaxY > 0 ? fixedMaxY : calculatedMaxY
     readonly property real totalTimeSec: displayPoints / Math.max(1, sampleRateHz)
     readonly property real secondsPerStep: totalTimeSec / Math.max(1, displayPoints - 1)
     readonly property real currentValue: values && values.length > 0 ? values[values.length - 1] : 0
+    readonly property real xTickStep: chooseStep(totalTimeSec, [0.5, 1, 2, 5, 10, 15, 30, 60])
+    readonly property real yTickStep: chooseStep(Math.max(0.5, effectiveMaxY - fixedMinY), [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50])
+    readonly property string xLabelFormat: xTickStep < 1 ? "%.1f" : "%.0f"
+    readonly property string yLabelFormat: yTickStep < 1 ? "%.1f" : "%.0f"
+
+    function chooseStep(range, candidates) {
+        var desiredStep = range / 5
+        for (var i = 0; i < candidates.length; ++i) {
+            if (candidates[i] >= desiredStep)
+                return candidates[i]
+        }
+
+        return candidates[candidates.length - 1]
+    }
 
     function updateDynamicMax() {
         // Pick a readable Y range automatically so the chart is easy to scan during live updates.
@@ -51,15 +66,15 @@ Rectangle {
         var count = Math.min(values.length, displayPoints)
         var start = values.length - count
 
-        // X values are negative seconds so the newest point stays at the right edge at time 0.
+        // Plot from oldest to newest across the visible time window.
         for (var i = 0; i < count; i++) {
-            var x = -((count - 1 - i) * secondsPerStep)
+            var x = i * secondsPerStep
             glowLineSeries.append(x, values[start + i])
             trendSeries.append(x, values[start + i])
         }
 
-        glowSeries.append(0, currentValue)
-        markerSeries.append(0, currentValue)
+        glowSeries.append((count - 1) * secondsPerStep, currentValue)
+        markerSeries.append((count - 1) * secondsPerStep, currentValue)
     }
 
     ChartView {
@@ -71,21 +86,26 @@ Rectangle {
         backgroundRoundness: 0
         backgroundColor: "transparent"
         plotAreaColor: "transparent"
-        margins.top: 0
-        margins.left: 0
-        margins.right: 0
-        margins.bottom: 0
+        margins.top: 6
+        margins.left: 6
+        margins.right: 6
+        margins.bottom: 6
 
         ValueAxis {
             id: axisX
-            min: -root.totalTimeSec
-            max: 0
-            tickCount: root.totalTimeSec >= 20 ? 5 : 4
-            labelFormat: "%.0fs"
+            min: 0
+            max: root.totalTimeSec
+            tickType: ValueAxis.TicksDynamic
+            tickAnchor: 0
+            tickInterval: root.xTickStep
+            labelFormat: root.xLabelFormat
             labelsColor: root.axisTextColor
             labelsFont.pixelSize: 10
-            gridVisible: false
-            lineVisible: false
+            titleText: "Time (s)"
+            gridVisible: true
+            gridLineColor: root.verticalGridColor
+            lineVisible: true
+            linePenColor: root.verticalGridColor
             shadesVisible: false
         }
 
@@ -93,13 +113,18 @@ Rectangle {
             id: axisY
             min: root.fixedMinY
             max: root.effectiveMaxY
-            tickCount: 3
-            labelFormat: "%.1f"
+            tickType: ValueAxis.TicksDynamic
+            tickAnchor: root.fixedMinY
+            tickInterval: root.yTickStep
+            labelFormat: root.yLabelFormat
             labelsColor: root.axisTextColor
             labelsFont.pixelSize: 10
+            titleText: root.unit.length > 0 ? root.unit : "Value"
+            gridVisible: true
             gridLineColor: root.horizontalGridColor
             minorGridVisible: false
-            lineVisible: false
+            lineVisible: true
+            linePenColor: root.horizontalGridColor
             shadesVisible: false
         }
 
