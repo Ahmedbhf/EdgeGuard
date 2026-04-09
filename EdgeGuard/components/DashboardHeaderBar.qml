@@ -9,7 +9,6 @@ Rectangle {
     readonly property bool stacked: width < 980
 
     signal connectionToggled()
-    signal exportCsvClicked()
     signal historyClicked()
     signal themeToggleClicked()
 
@@ -67,20 +66,6 @@ Rectangle {
             }
 
             ControlButton {
-                text: "Export CSV"
-                primary: true
-                enabled: dataModel.csvFilePath.length > 0
-                onClicked: root.exportCsvClicked()
-            }
-
-            ControlButton {
-                text: dataModel.loggingEnabled ? "Stop Logging" : "Start Logging"
-                primary: dataModel.loggingEnabled
-                enabled: dataModel.connected || dataModel.loggingEnabled
-                onClicked: dataModel.loggingEnabled ? dataModel.stopLogging() : dataModel.startLogging()
-            }
-
-            ControlButton {
                 text: "History"
                 onClicked: root.historyClicked()
             }
@@ -133,20 +118,6 @@ Rectangle {
             ControlButton {
                 text: Theme.lightMode ? "Dark Mode" : "Light Mode"
                 onClicked: root.themeToggleClicked()
-            }
-
-            ControlButton {
-                text: "Export CSV"
-                primary: true
-                enabled: dataModel.csvFilePath.length > 0
-                onClicked: root.exportCsvClicked()
-            }
-
-            ControlButton {
-                text: dataModel.loggingEnabled ? "Stop Logging" : "Start Logging"
-                primary: dataModel.loggingEnabled
-                enabled: dataModel.connected || dataModel.loggingEnabled
-                onClicked: dataModel.loggingEnabled ? dataModel.stopLogging() : dataModel.startLogging()
             }
 
             ControlButton {

@@ -1,12 +1,9 @@
 #include "datamodel.h"
+#include "data_storage.h"
 
 #include <QDateTime>
-#include <QDesktopServices>
-#include <QDir>
-#include <QFileInfo>
-#include <QStandardPaths>
-#include <QTextStream>
 #include <QTime>
+#include <QTimeZone>
 #include <cmath>
 
 namespace {
@@ -18,7 +15,10 @@ void trim(QVector<double> &values, double value, int max)
         values.removeFirst();
 }
 }
-DataModel::DataModel(QObject *parent) : QObject(parent), m_serial(new SerialManager(this))
+DataModel::DataModel(QObject *parent)
+    : QObject(parent),
+      m_serial(new SerialManager(this)),
+      m_storage(std::make_unique<DataStorage>())
 {
     // The device may send its identity before the user chooses anything in the UI.
     connect(m_serial, &SerialManager::deviceIdReceived, this, [this](const QString &deviceId) {
@@ -36,11 +36,11 @@ DataModel::DataModel(QObject *parent) : QObject(parent), m_serial(new SerialMana
     connect(&m_uiSampleTimer, &QTimer::timeout, this, &DataModel::flushUiSamples);
     m_uiSampleTimer.start();
     refreshPorts();
+    m_lastStoredSampleMs = QDateTime::currentMSecsSinceEpoch();
     appendLog(QStringLiteral("Ready."));
 }
 DataModel::~DataModel()
 {
-    stopCsv();
 }
 
 void DataModel::connectToPort(const QString &portName)
@@ -80,54 +80,19 @@ void DataModel::setDeviceId(const QString &deviceId)
     emit deviceIdChanged();
 }
 
-void DataModel::openCsvFile()
+QString DataModel::loadLast24hCsv() const
 {
-    // Open the saved file directly when possible, otherwise open its folder as a fallback.
-    if (m_csvPath.isEmpty() || !QFileInfo::exists(m_csvPath))
-        return appendLog(QStringLiteral("No CSV file available yet."));
-    const QUrl fileUrl = QUrl::fromLocalFile(m_csvPath);
-    if (QDesktopServices::openUrl(fileUrl)) return appendLog(QStringLiteral("Opened CSV file."));
-    if (!QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(m_csvPath).absolutePath())))
-        appendLog(QStringLiteral("Could not open the CSV file."));
+    return m_storage ? m_storage->loadLast24h() : QString();
 }
 
-void DataModel::startLogging()
-{
-    // Logging is only useful when live data is already coming from the serial device.
-    if (!connected())
-        return appendLog(QStringLiteral("Connect to a UART port before starting logging."));
-    if (m_loggingEnabled)
-        return;
-    startCsv();
-    if (m_loggingEnabled)
-        appendLog(QStringLiteral("Logging started"));
-}
-
-void DataModel::stopLogging()
-{
-    if (!m_loggingEnabled)
-        return;
-    stopCsv();
-    appendLog(QStringLiteral("Logging stopped"));
-}
-
-QString DataModel::readTextFileLimited(const QUrl &fileUrl, int maxLines) const
+bool DataModel::exportHistoryCsv(const QUrl &fileUrl)
 {
     const QString path = fileUrl.isLocalFile() ? fileUrl.toLocalFile() : fileUrl.toString();
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        return QString();
-
-    QTextStream stream(&file);
-    QStringList lines;
-    int count = 0;
-    // This is used by QML previews where loading the full file is not necessary.
-    while (!stream.atEnd() && count < maxLines) {
-        lines.append(stream.readLine());
-        ++count;
-    }
-
-    return lines.join('\n');
+    const bool ok = m_storage && m_storage->exportCsv(path);
+    appendLog(ok
+                  ? QStringLiteral("Exported 24h history to %1").arg(path)
+                  : QStringLiteral("Could not export the 24h history CSV."));
+    return ok;
 }
 
 void DataModel::onPacketReceived(double anomalyScore, double x, double y, double z, double temp, double ambientTemp, const QString &stateText)
@@ -147,12 +112,12 @@ void DataModel::processSample(double anomalyScore, double x, double y, double z,
     // These accumulators let us average short bursts of samples before refreshing the charts.
     m_windowRmsSquareSum += (m_rms * m_rms);
     m_windowTempSum += m_temp;
+    m_windowAnomalySum += m_anomalyScore;
     m_windowXSum += m_x;
     m_windowYSum += m_y;
     m_windowZSum += m_z;
     ++m_windowSampleCount;
     m_pendingUiRefresh = true;
-    writeCsv();
     if (stateUpdated) { emit stateChanged(); appendLog(QStringLiteral("State: %1").arg(m_state)); }
 }
 
@@ -172,8 +137,6 @@ void DataModel::syncConnection()
     if (!connected()) {
         // Flush any pending chart values before the session fully ends.
         flushUiSamples();
-        if (m_loggingEnabled)
-            stopCsv();
         appendLog(QStringLiteral("Disconnected from %1").arg(m_selectedPort.isEmpty() ? QStringLiteral("device") : m_selectedPort));
     }
     emit connectedChanged();
@@ -195,6 +158,7 @@ void DataModel::flushUiSamples()
         // Average the short window so the chart shows smoother values and fewer redraws.
         const double aggregatedRms = std::sqrt(m_windowRmsSquareSum / m_windowSampleCount);
         const double aggregatedTemp = m_windowTempSum / m_windowSampleCount;
+        const double aggregatedAnomalyScore = m_windowAnomalySum / m_windowSampleCount;
         const double aggregatedX = m_windowXSum / m_windowSampleCount;
         const double aggregatedY = m_windowYSum / m_windowSampleCount;
         const double aggregatedZ = m_windowZSum / m_windowSampleCount;
@@ -209,11 +173,14 @@ void DataModel::flushUiSamples()
         emit xAxisValuesChanged();
         emit yAxisValuesChanged();
         emit zAxisValuesChanged();
+
+        storeHistoryPoint(aggregatedAnomalyScore, aggregatedX, aggregatedY, aggregatedZ, aggregatedTemp);
     }
 
     m_windowSampleCount = 0;
     m_windowRmsSquareSum = 0.0;
     m_windowTempSum = 0.0;
+    m_windowAnomalySum = 0.0;
     m_windowXSum = 0.0;
     m_windowYSum = 0.0;
     m_windowZSum = 0.0;
@@ -232,57 +199,28 @@ void DataModel::appendLog(const QString &text)
     emit logTextChanged();
 }
 
-void DataModel::startCsv()
+void DataModel::storeHistoryPoint(double anomalyScore, double x, double y, double z, double temp)
 {
-    stopCsv();
-    // Save logs in the user's Documents folder so the file is easy to find after the session.
-    QString base = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    if (base.isEmpty()) base = QDir::currentPath();
-    QDir(base).mkpath(QStringLiteral("EdgeGuard"));
-    m_csvPath = QDir(base).filePath(QStringLiteral("EdgeGuard/edgeguard_%1.csv").arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_hhmmss"))));
-    m_csv.setFileName(m_csvPath);
-    if (!m_csv.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        m_csvPath.clear();
-        emit csvFilePathChanged();
-        return appendLog(QStringLiteral("Could not create CSV file."));
-    }
-    m_loggingEnabled = true;
-    emit loggingEnabledChanged();
-    emit csvFilePathChanged();
-    m_csvWritesSinceFlush = 0;
-    m_csv.write("time,rms,temp,ambient_temp,state\n");
-    m_csv.flush();
-    appendLog(QStringLiteral("CSV: %1").arg(m_csvPath));
-}
+    if (!m_storage)
+        return;
 
-void DataModel::stopCsv()
-{
-    if (m_csv.isOpen()) {
-        m_csv.flush();
-        m_csv.close();
-    }
-    if (m_loggingEnabled) {
-        m_loggingEnabled = false;
-        emit loggingEnabledChanged();
-    }
-    m_csvWritesSinceFlush = 0;
-}
+    const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
+    if (nowMs - m_lastStoredSampleMs < StorageIntervalMs)
+        return;
 
-void DataModel::writeCsv()
-{
-    if (!m_loggingEnabled) return;
-    if (!m_csv.isOpen()) return;
-    // We write already-calculated values instead of raw axes because the dashboard shows the same summary values.
-    const QString line = QStringLiteral("%1,%2,%3,%4,%5\n")
-                             .arg(QTime::currentTime().toString(QStringLiteral("HH:mm:ss")))
-                             .arg(QString::number(m_rms, 'f', 4))
-                             .arg(QString::number(m_temp, 'f', 1))
-                             .arg(QString::number(m_ambientTemp, 'f', 1))
-                             .arg(m_state);
-    m_csv.write(line.toUtf8());
-    ++m_csvWritesSinceFlush;
-    if (m_csvWritesSinceFlush >= CsvFlushInterval) {
-        m_csv.flush();
-        m_csvWritesSinceFlush = 0;
+    DataStorage::DataPoint point;
+    point.timestampUtc = QDateTime::fromMSecsSinceEpoch(nowMs, QTimeZone::UTC);
+    point.anomaly = anomalyScore;
+    point.x = x;
+    point.y = y;
+    point.z = z;
+    point.temp = temp;
+    m_storage->appendData(point);
+    m_lastStoredSampleMs = nowMs;
+
+    ++m_storageSamplesSinceCleanup;
+    if (m_storageSamplesSinceCleanup >= StorageCleanupIntervalSamples) {
+        m_storage->cleanOldData();
+        m_storageSamplesSinceCleanup = 0;
     }
 }

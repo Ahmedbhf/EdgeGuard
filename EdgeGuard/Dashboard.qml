@@ -74,7 +74,6 @@ Item {
                     root.returnToSetup()
                 }
             }
-            onExportCsvClicked: dataModel.openCsvFile()
             onHistoryClicked: root.showingHistoryPage = true
             onThemeToggleClicked: Theme.toggleMode()
         }

@@ -24,12 +24,23 @@ PanelCard {
     property string valueFormat: "%.2f"
     property int valueDecimals: 2
     property var points: []
+    property var thresholdBands: []
     property real fullStartMs: 0
     property real fullEndMs: 1000
     property real minimumWindowMs: 1000
     property real axisMinY: 0
     property real axisMaxY: 1
     property bool interactiveEnabled: false
+
+    function clampToAxis(value) {
+        return Math.max(axisMinY, Math.min(axisMaxY, value))
+    }
+
+    function plotYForValue(value) {
+        var span = Math.max(0.0001, axisMaxY - axisMinY)
+        var normalized = (clampToAxis(value) - axisMinY) / span
+        return chart.plotArea.y + chart.plotArea.height * (1 - normalized)
+    }
 
     signal visibleRangeChanged(real startMs, real endMs)
     onPointsChanged: HistoryChartUtils.refreshSeries(lineSeries,
@@ -60,14 +71,50 @@ PanelCard {
         id: contentArea
         anchors.fill: parent
 
+        Rectangle {
+            anchors.fill: parent
+            color: Theme.panel2
+            radius: 12
+        }
+
+        Item {
+            id: thresholdBandLayer
+            anchors.fill: parent
+            clip: true
+            visible: root.thresholdBands && root.thresholdBands.length > 0
+
+            Repeater {
+                model: root.thresholdBands
+
+                Rectangle {
+                    required property var modelData
+
+                    readonly property real clippedFrom: root.clampToAxis(Math.min(modelData.from, modelData.to))
+                    readonly property real clippedTo: root.clampToAxis(Math.max(modelData.from, modelData.to))
+                    readonly property real topY: root.plotYForValue(clippedTo)
+                    readonly property real bottomY: root.plotYForValue(clippedFrom)
+
+                    visible: chart.plotArea.width > 0
+                             && chart.plotArea.height > 0
+                             && clippedTo > clippedFrom
+                    x: chart.x + chart.plotArea.x
+                    y: chart.y + topY
+                    width: chart.plotArea.width
+                    height: Math.max(0, bottomY - topY)
+                    color: modelData.color
+                    opacity: modelData.opacity !== undefined ? modelData.opacity : 0.16
+                }
+            }
+        }
+
         ChartView {
             id: chart
             anchors.fill: parent
             anchors.margins: 16
             antialiasing: true
             legend.visible: false
-            backgroundColor: Theme.panel2
-            plotAreaColor: Theme.panel2
+            backgroundColor: "transparent"
+            plotAreaColor: "transparent"
             margins.left: 8
             margins.right: 8
             margins.top: 8

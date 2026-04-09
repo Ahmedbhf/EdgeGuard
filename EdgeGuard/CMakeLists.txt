@@ -61,6 +61,8 @@ qt_add_qml_module(appEdgeGuard
     SOURCES
         backend/datamodel.h
         backend/datamodel.cpp
+        backend/data_storage.h
+        backend/data_storage.cpp
         backend/serialmanager.h
         backend/serialmanager.cpp
 )

@@ -6,7 +6,10 @@ import EdgeGuard
 Item {
     id: root
 
-    // This wrapper keeps both history charts using the same time window and interactions.
+    // This wrapper keeps all history charts using the same time window and interactions.
+    property var anomalyPoints: []
+    property real anomalyMinY: 0
+    property real anomalyMaxY: 100
     property var rmsPoints: []
     property var tempPoints: []
     property real rmsMinY: 0
@@ -25,11 +28,42 @@ Item {
         spacing: 16
 
         HistoryChartPanel {
+            id: anomalyPanel
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.verticalStretchFactor: 1
+            chartTitle: "Anomaly Score vs Time"
+            valueLabel: "Score"
+            valueFormat: "%.1f"
+            valueDecimals: 1
+            lineColor: Theme.text
+            thresholdBands: [
+                { from: 0, to: 50, color: "#EF4444", opacity: 0.16 },
+                { from: 50, to: 80, color: "#F59E0B", opacity: 0.14 },
+                { from: 80, to: 100, color: "#22C55E", opacity: 0.14 }
+            ]
+            points: root.anomalyPoints
+            axisMinY: root.anomalyMinY
+            axisMaxY: root.anomalyMaxY
+            fullStartMs: root.fullStartMs
+            fullEndMs: root.fullEndMs
+            minimumWindowMs: root.minimumWindowMs
+            interactiveEnabled: root.interactiveEnabled
+            onVisibleRangeChanged: function(startMs, endMs) {
+                if (root.synchronizingRange)
+                    return
+
+                root.synchronizingRange = true
+                HistoryChartUtils.syncVisibleRange(startMs, endMs, anomalyPanel, [anomalyPanel, rmsPanel, tempPanel])
+                root.synchronizingRange = false
+            }
+        }
+
+        HistoryChartPanel {
             id: rmsPanel
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.verticalStretchFactor: 1
-            // RMS and temperature charts share the same pan and zoom controls from the parent page.
             chartTitle: "RMS vs Time"
             valueLabel: "RMS"
             valueFormat: "%.2f"
@@ -47,7 +81,7 @@ Item {
                     return
 
                 root.synchronizingRange = true
-                HistoryChartUtils.syncVisibleRange(startMs, endMs, rmsPanel, rmsPanel, tempPanel)
+                HistoryChartUtils.syncVisibleRange(startMs, endMs, rmsPanel, [anomalyPanel, rmsPanel, tempPanel])
                 root.synchronizingRange = false
             }
         }
@@ -74,7 +108,7 @@ Item {
                     return
 
                 root.synchronizingRange = true
-                HistoryChartUtils.syncVisibleRange(startMs, endMs, tempPanel, rmsPanel, tempPanel)
+                HistoryChartUtils.syncVisibleRange(startMs, endMs, tempPanel, [anomalyPanel, rmsPanel, tempPanel])
                 root.synchronizingRange = false
             }
         }

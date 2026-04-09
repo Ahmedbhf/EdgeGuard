@@ -3,12 +3,14 @@
 
 #include "serialmanager.h"
 
-#include <QFile>
 #include <QObject>
 #include <QStringList>
 #include <QTimer>
 #include <QUrl>
 #include <QVector>
+#include <memory>
+
+class DataStorage;
 
 class DataModel : public QObject
 {
@@ -31,8 +33,6 @@ class DataModel : public QObject
     Q_PROPERTY(QString deviceId READ deviceId WRITE setDeviceId NOTIFY deviceIdChanged)
     Q_PROPERTY(QString state READ state NOTIFY stateChanged)
     Q_PROPERTY(QString logText READ logText NOTIFY logTextChanged)
-    Q_PROPERTY(QString csvFilePath READ csvFilePath NOTIFY csvFilePathChanged)
-    Q_PROPERTY(bool loggingEnabled READ loggingEnabled NOTIFY loggingEnabledChanged)
 
 public:
     explicit DataModel(QObject *parent = nullptr);
@@ -55,8 +55,6 @@ public:
     QString deviceId() const { return m_deviceId; }
     QString state() const { return m_state; }
     QString logText() const { return m_logs.join('\n'); }
-    QString csvFilePath() const { return m_csvPath; }
-    bool loggingEnabled() const { return m_loggingEnabled; }
 
     Q_INVOKABLE void connectToPort(const QString &portName);
     Q_INVOKABLE void disconnectPort();
@@ -65,10 +63,8 @@ public:
     void setMachineType(const QString &machineType);
     void setDeviceId(const QString &deviceId);
     Q_INVOKABLE QString portNameAt(int index) const { return m_serial->portNameAt(index); }
-    Q_INVOKABLE void openCsvFile();
-    Q_INVOKABLE void startLogging();
-    Q_INVOKABLE void stopLogging();
-    Q_INVOKABLE QString readTextFileLimited(const QUrl &fileUrl, int maxLines) const;
+    Q_INVOKABLE QString loadLast24hCsv() const;
+    Q_INVOKABLE bool exportHistoryCsv(const QUrl &fileUrl);
 
 signals:
     void dataChanged();
@@ -84,8 +80,6 @@ signals:
     void deviceIdChanged();
     void stateChanged();
     void logTextChanged();
-    void csvFilePathChanged();
-    void loggingEnabledChanged();
 
     private slots:
     // Raw serial packets arrive here first, then we turn them into app state.
@@ -102,20 +96,16 @@ signals:
     void syncConnection();
     // Recomputes summary values shown on the dashboard.
     void updateMetrics();
+    // Persists a downsampled snapshot into the rolling 24h CSV store.
+    void storeHistoryPoint(double anomalyScore, double x, double y, double z, double temp);
     // Adds one line to the on-screen event log.
     void appendLog(const QString &text);
-    // Starts and stops CSV logging for the current session.
-    void startCsv();
-    void stopCsv();
-    // Writes the latest values to the CSV file when logging is enabled.
-    void writeCsv();
 
     SerialManager *m_serial = nullptr;
     QString m_selectedPort;
     QString m_machineType;
     QString m_deviceId;
     QString m_state = QStringLiteral("OK");
-    QString m_csvPath;
     double m_x = 0.0, m_y = 0.0, m_z = 0.0, m_rms = 0.0, m_anomalyScore = 0.0, m_temp = 0.0, m_ambientTemp = 0.0;
     QVector<double> m_vibration;
     QVector<double> m_temperature;
@@ -123,22 +113,24 @@ signals:
     QVector<double> m_yHistory;
     QVector<double> m_zHistory;
     QStringList m_logs;
-    QFile m_csv;
     QTimer m_uiSampleTimer;
-    bool m_loggingEnabled = false;
     bool m_pendingUiRefresh = false;
     int m_windowSampleCount = 0;
-    int m_csvWritesSinceFlush = 0;
     double m_windowRmsSquareSum = 0.0;
     double m_windowTempSum = 0.0;
+    double m_windowAnomalySum = 0.0;
     double m_windowXSum = 0.0;
     double m_windowYSum = 0.0;
     double m_windowZSum = 0.0;
+    int m_storageSamplesSinceCleanup = 0;
+    qint64 m_lastStoredSampleMs = 0;
+    std::unique_ptr<DataStorage> m_storage;
 
     // Small fixed limits keep charts and logs responsive even during long runs.
     static constexpr int MaxHistory = 300;
     static constexpr int UiAggregationIntervalMs = 50;
-    static constexpr int CsvFlushInterval = 20;
+    static constexpr int StorageIntervalMs = 250;
+    static constexpr int StorageCleanupIntervalSamples = 20;
     static constexpr int MaxLogLines = 300;
 };
 

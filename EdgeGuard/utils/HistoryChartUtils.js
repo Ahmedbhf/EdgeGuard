@@ -201,10 +201,14 @@ function setPanelVisibleRange(panel, startMs, endMs) {
                     endMs)
 }
 
-// Apply one visible range to both history panels while skipping the source panel.
-function syncVisibleRange(startMs, endMs, sourcePanel, firstPanel, secondPanel) {
-    if (sourcePanel !== firstPanel)
-        setPanelVisibleRange(firstPanel, startMs, endMs)
-    if (sourcePanel !== secondPanel)
-        setPanelVisibleRange(secondPanel, startMs, endMs)
+// Apply one visible range to sibling history panels while skipping the source panel.
+function syncVisibleRange(startMs, endMs, sourcePanel, panels) {
+    if (!panels || panels.length === 0)
+        return
+
+    for (var i = 0; i < panels.length; ++i) {
+        var panel = panels[i]
+        if (panel && panel !== sourcePanel)
+            setPanelVisibleRange(panel, startMs, endMs)
+    }
 }
