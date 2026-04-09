@@ -8,36 +8,6 @@ PanelCard {
     implicitHeight: 420
     title: "Anomaly Status"
 
-    property var lastSampleTime: null
-    property int refreshTick: 0
-    readonly property string lastUpdateText: {
-        refreshTick
-        if (!lastSampleTime)
-            return "Waiting for data"
-
-        var seconds = Math.floor((new Date().getTime() - lastSampleTime.getTime()) / 1000)
-        if (seconds <= 1)
-            return "Just now"
-
-        return seconds + " s ago"
-    }
-
-    Timer {
-        interval: 1000
-        repeat: true
-        running: true
-        onTriggered: root.refreshTick++
-    }
-
-    Connections {
-        target: dataModel
-
-        function onDataChanged() {
-            root.lastSampleTime = new Date()
-            root.refreshTick = 0
-        }
-    }
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Theme.spaceLg
@@ -46,7 +16,7 @@ PanelCard {
         ValueCard {
             Layout.fillWidth: true
             label: "Anomaly Score"
-            value: dataModel.anomalyScore.toFixed(2)
+            value: appController.anomalyScore.toFixed(2)
             sizeVariant: "large"
         }
 
@@ -71,7 +41,7 @@ PanelCard {
 
                 Text {
                     Layout.fillWidth: true
-                    text: root.lastUpdateText
+                    text: appController.lastUpdateText
                     color: Theme.text
                     font.pixelSize: 20
                     font.weight: Font.DemiBold
@@ -102,14 +72,14 @@ PanelCard {
 
                 StatusTile {
                     text: "OK"
-                    active: dataModel.state === "OK"
+                    active: appController.state === "OK"
                     activeColor: Theme.ok
                     borderHighlight: 1.2
                 }
 
                 StatusTile {
                     text: "ANOMALY"
-                    active: dataModel.state === "ANOMALY"
+                    active: appController.state === "ANOMALY"
                     activeColor: Theme.fault
                 }
             }

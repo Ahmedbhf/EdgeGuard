@@ -8,10 +8,8 @@ import EdgeGuard
 Page {
     id: root
 
-    // These values drive the simple setup flow before entering the main dashboard.
     property bool connectionRequested: false
     readonly property string preferredPort: "COM11"
-    readonly property bool deviceConnected: dataModel.deviceId !== ""
     readonly property string assetsBasePath: "qrc:/qt/qml/EdgeGuard/assets/"
 
     property var machineCards: [
@@ -30,37 +28,10 @@ Page {
     Component.onCompleted: Qt.callLater(root.continueToDashboard)
 
     function continueToDashboard() {
-        // Only continue after the device has identified itself through UART.
-        if (!root.deviceConnected)
+        if (!appController.deviceConnected)
             return
 
         StackView.view.push("Dashboard.qml")
-    }
-
-    function connectToDetectedPort() {
-        // Try the preferred port first, then the current selection, then the first available port.
-        dataModel.refreshPorts()
-
-        var targetPort = ""
-
-        for (var i = 0; i < dataModel.availablePorts.length; ++i) {
-            if (dataModel.portNameAt(i) === root.preferredPort) {
-                targetPort = root.preferredPort
-                break
-            }
-        }
-
-        if ((!targetPort || targetPort.length === 0) && dataModel.selectedPort.length > 0)
-            targetPort = dataModel.selectedPort
-
-        if ((!targetPort || targetPort.length === 0) && dataModel.availablePorts.length > 0)
-            targetPort = dataModel.portNameAt(0)
-
-        if (!targetPort || targetPort.length === 0)
-            targetPort = root.preferredPort
-
-        dataModel.setSelectedPort(targetPort)
-        dataModel.connectToPort(targetPort)
     }
 
     Item {
@@ -87,15 +58,13 @@ Page {
             }
 
             ControlButton {
-                id: connectButton
                 text: "Connect Device"
                 width: 200
                 height: 44
                 primary: true
                 onClicked: {
-                    // Remember that the user started the connection flow so we can show waiting text.
                     root.connectionRequested = true
-                    root.connectToDetectedPort()
+                    appController.connectPreferredPort(root.preferredPort)
                 }
             }
 
@@ -110,14 +79,13 @@ Page {
 
                     delegate: Rectangle {
                         required property var modelData
-                        // Cards are read-only here; they highlight the machine type detected from the device.
-                        readonly property bool isSelected: root.deviceConnected && dataModel.machineType === modelData.value
+                        readonly property bool isSelected: appController.deviceConnected && appController.machineType === modelData.value
 
                         width: (machineGrid.width - (machineGrid.columns - 1) * machineGrid.spacing) / machineGrid.columns
                         height: 182
                         radius: 18
                         color: Theme.panel
-                        opacity: !root.deviceConnected ? 0.3 : (isSelected ? 1.0 : 0.2)
+                        opacity: !appController.deviceConnected ? 0.3 : (isSelected ? 1.0 : 0.2)
                         border.width: isSelected ? 2 : 0
                         border.color: Theme.primary
 
@@ -168,32 +136,30 @@ Page {
             }
 
             Text {
-                text: "Device ID: " + (dataModel.deviceId.length > 0 ? dataModel.deviceId : "Waiting for UART")
+                text: "Device ID: " + (appController.deviceId.length > 0 ? appController.deviceId : "Waiting for UART")
                 color: Theme.text
                 font.pixelSize: 14
             }
 
             Text {
-                text: "Machine: " + (dataModel.machineType.length > 0 ? dataModel.machineType : "Waiting for detection")
+                text: "Machine: " + (appController.machineType.length > 0 ? appController.machineType : "Waiting for detection")
                 color: Theme.text
                 font.pixelSize: 14
             }
 
             Text {
                 width: parent.width
-                // This helper text only appears after the user asks to connect.
-                visible: root.connectionRequested && !root.deviceConnected
+                visible: root.connectionRequested && !appController.deviceConnected
                 text: "Waiting for UART data..."
                 color: Theme.muted
                 font.pixelSize: 13
             }
 
             ControlButton {
-                id: continueButton
                 text: "Continue"
                 width: 200
                 height: 44
-                enabled: root.deviceConnected
+                enabled: appController.deviceConnected
                 primary: true
                 onClicked: root.continueToDashboard()
             }

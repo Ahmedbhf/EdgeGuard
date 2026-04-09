@@ -21,7 +21,7 @@ PanelCard {
             Layout.minimumHeight: 0
             Layout.verticalStretchFactor: 1
             label: "RMS (mg)"
-            value: dataModel.rms.toFixed(2)
+            value: appController.rms.toFixed(2)
             sizeVariant: "hero"
         }
         ValueCard {
@@ -30,7 +30,7 @@ PanelCard {
             Layout.minimumHeight: 0
             Layout.verticalStretchFactor: 1
             label: "Machine Temp (°C)"
-            value: dataModel.temp.toFixed(1)
+            value: appController.temp.toFixed(1)
             sizeVariant: "hero"
         }
 
@@ -40,7 +40,7 @@ PanelCard {
             Layout.minimumHeight: 0
             Layout.verticalStretchFactor: 1
             label: "Ambient Temp (°C)"
-            value: dataModel.ambientTemp.toFixed(1)
+            value: appController.ambientTemp.toFixed(1)
             sizeVariant: "hero"
         }
     }

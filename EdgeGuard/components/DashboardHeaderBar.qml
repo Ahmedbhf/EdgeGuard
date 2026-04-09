@@ -35,9 +35,9 @@ Rectangle {
         }
 
         Text {
-            visible: dataModel.machineType.length > 0 || dataModel.deviceId.length > 0
-            text: dataModel.machineType.length > 0
-                  ? dataModel.machineType + " (" + (dataModel.deviceId.length > 0 ? dataModel.deviceId : "Waiting for UID") + ")"
+            visible: appController.machineType.length > 0 || appController.deviceId.length > 0
+            text: appController.machineType.length > 0
+                  ? appController.machineType + " (" + (appController.deviceId.length > 0 ? appController.deviceId : "Waiting for UID") + ")"
                   : "Waiting for UID"
             color: Theme.muted
             font.pixelSize: 13
@@ -55,8 +55,8 @@ Rectangle {
             Layout.alignment: Qt.AlignVCenter
 
             ControlButton {
-                text: dataModel.connected ? "Disconnect" : "Connect"
-                primary: dataModel.connected
+                text: appController.connected ? "Disconnect" : "Connect"
+                primary: appController.connected
                 onClicked: root.connectionToggled()
             }
 
@@ -93,9 +93,9 @@ Rectangle {
             }
 
             Text {
-                visible: dataModel.machineType.length > 0 || dataModel.deviceId.length > 0
-                text: dataModel.machineType.length > 0
-                      ? dataModel.machineType + " (" + (dataModel.deviceId.length > 0 ? dataModel.deviceId : "Waiting for UID") + ")"
+                visible: appController.machineType.length > 0 || appController.deviceId.length > 0
+                text: appController.machineType.length > 0
+                      ? appController.machineType + " (" + (appController.deviceId.length > 0 ? appController.deviceId : "Waiting for UID") + ")"
                       : "Waiting for UID"
                 color: Theme.muted
                 font.pixelSize: 12
@@ -110,8 +110,8 @@ Rectangle {
             spacing: 8
 
             ControlButton {
-                text: dataModel.connected ? "Disconnect" : "Connect"
-                primary: dataModel.connected
+                text: appController.connected ? "Disconnect" : "Connect"
+                primary: appController.connected
                 onClicked: root.connectionToggled()
             }
 

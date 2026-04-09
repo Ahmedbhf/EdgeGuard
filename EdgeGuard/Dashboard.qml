@@ -10,32 +10,20 @@ Item {
     id: root
     anchors.fill: parent
 
-    // The dashboard swaps to the history page without leaving the current stack entry.
     property bool showingHistoryPage: false
-    property var anomalyHistory: []
+    property string selectedAxis: "X"
     readonly property int liveDisplayPoints: 120
     readonly property bool compactLayout: width < 1100 || height < 700
     readonly property int contentMargin: compactLayout ? Theme.spaceMd : Theme.spaceLg
     readonly property int compactGaugeHeight: height < 600 ? 210 : 240
     readonly property int compactChartHeight: height < 600 ? 220 : 250
-    property int selectedAxisIndex: 0
-    readonly property var axisSelectorOptions: ["X", "Y", "Z"]
-    readonly property var selectedAxisValues: selectedAxisIndex === 0
-                                            ? dataModel.xAxisValues
-                                            : (selectedAxisIndex === 1 ? dataModel.yAxisValues : dataModel.zAxisValues)
-    readonly property color selectedAxisColor: selectedAxisIndex === 0
+    readonly property var axisOptions: ["X", "Y", "Z"]
+    readonly property var selectedAxisValues: selectedAxis === "X"
+                                            ? appController.xAxisValues
+                                            : (selectedAxis === "Y" ? appController.yAxisValues : appController.zAxisValues)
+    readonly property color selectedAxisColor: selectedAxis === "X"
                                              ? "#86BBFF"
-                                             : (selectedAxisIndex === 1 ? "#34D399" : "#F59E0B")
-
-    function appendHistoryValue(series, nextValue, maxPoints) {
-        var nextSeries = series ? series.slice(0) : []
-        nextSeries.push(nextValue)
-
-        if (nextSeries.length > maxPoints)
-            nextSeries = nextSeries.slice(nextSeries.length - maxPoints)
-
-        return nextSeries
-    }
+                                             : (selectedAxis === "Y" ? "#34D399" : "#F59E0B")
 
     function returnToSetup() {
         var stack = StackView.view
@@ -48,15 +36,6 @@ Item {
             stack.replace("SetupPage.qml", StackView.Immediate)
     }
 
-    Connections {
-        target: dataModel
-
-        function onDataChanged() {
-            // Keep a lightweight local score history for the dashboard without changing backend state.
-            root.anomalyHistory = root.appendHistoryValue(root.anomalyHistory, dataModel.anomalyScore, 300)
-        }
-    }
-
     ColumnLayout {
         visible: !root.showingHistoryPage
         anchors.fill: parent
@@ -65,14 +44,10 @@ Item {
         DashboardHeaderBar {
             Layout.fillWidth: true
             onConnectionToggled: {
-                // Disconnecting also clears the detected identity so setup starts fresh next time.
-                if (dataModel.connected) {
-                    dataModel.disconnectPort()
-                    dataModel.deviceId = ""
-                    dataModel.machineType = ""
-                } else {
+                if (appController.connected)
+                    appController.disconnectAndReset()
+                else
                     root.returnToSetup()
-                }
             }
             onHistoryClicked: root.showingHistoryPage = true
             onThemeToggleClicked: Theme.toggleMode()
@@ -108,7 +83,7 @@ Item {
                     Layout.horizontalStretchFactor: 65
                     spacing: Theme.spaceLg
 
-                    PanelCard {
+                    ChartCard {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.minimumHeight: 0
@@ -117,50 +92,41 @@ Item {
                         LiveTrendChart {
                             anchors.fill: parent
                             anchors.margins: 16
-                            values: root.anomalyHistory
+                            values: appController.anomalyValues
                             showUnitLabel: false
                             displayPoints: root.liveDisplayPoints
                             sampleRateHz: 20.0
                             fixedMinY: 0
                             fixedMaxY: 100
                             lineColor: Theme.primary
-                            anomalyActive: dataModel.state === "ANOMALY"
+                            anomalyActive: appController.state === "ANOMALY"
                         }
                     }
 
-                    PanelCard {
+                    ChartCard {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.minimumHeight: 0
                         title: "Acceleration"
 
                         headerContent: AxisSelectorCombo {
-                            id: desktopAxisCombo
                             Layout.preferredWidth: 84
-                            model: root.axisSelectorOptions
-                            currentIndex: root.selectedAxisIndex
-
-                            onActivated: root.selectedAxisIndex = currentIndex
+                            model: root.axisOptions
+                            currentIndex: root.axisOptions.indexOf(root.selectedAxis)
+                            onActivated: root.selectedAxis = root.axisOptions[currentIndex]
                         }
 
-                        ColumnLayout {
+                        LiveTrendChart {
                             anchors.fill: parent
-                            anchors.margins: Theme.spaceLg
-                            spacing: Theme.spaceMd
-
-                            LiveTrendChart {
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                Layout.minimumHeight: 0
-                                values: root.selectedAxisValues
-                                unit: "mg"
-                                showUnitLabel: false
-                                displayPoints: root.liveDisplayPoints
-                                sampleRateHz: 20.0
-                                lineColor: root.selectedAxisColor
-                                clampMinYToZero: false
-                                anomalyActive: dataModel.state === "ANOMALY"
-                            }
+                            anchors.margins: 16
+                            values: root.selectedAxisValues
+                            unit: "mg"
+                            showUnitLabel: false
+                            displayPoints: root.liveDisplayPoints
+                            sampleRateHz: 20.0
+                            lineColor: root.selectedAxisColor
+                            clampMinYToZero: false
+                            anomalyActive: appController.state === "ANOMALY"
                         }
                     }
                 }
@@ -176,7 +142,7 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.minimumHeight: 0
-                        value: dataModel.anomalyScore
+                        value: appController.anomalyScore
                         label: "Anomaly Score"
                         zones: [
                             { from: 0, to: 40, color: "red" },
@@ -189,7 +155,7 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.minimumHeight: 0
-                        value: dataModel.temp
+                        value: appController.temp
                         max: 100
                         label: "Machine Temperature"
                         zones: [
@@ -223,7 +189,7 @@ Item {
                     GaugeCard {
                         width: parent.width
                         height: root.compactGaugeHeight
-                        value: dataModel.anomalyScore
+                        value: appController.anomalyScore
                         label: "Anomaly Score"
                         zones: [
                             { from: 0, to: 40, color: "red" },
@@ -235,7 +201,7 @@ Item {
                     GaugeCard {
                         width: parent.width
                         height: root.compactGaugeHeight
-                        value: dataModel.temp
+                        value: appController.temp
                         max: 100
                         label: "Machine Temperature"
                         zones: [
@@ -245,7 +211,7 @@ Item {
                         ]
                     }
 
-                    PanelCard {
+                    ChartCard {
                         width: parent.width
                         height: root.compactChartHeight
                         title: "Anomaly Score vs Time"
@@ -253,49 +219,40 @@ Item {
                         LiveTrendChart {
                             anchors.fill: parent
                             anchors.margins: 16
-                            values: root.anomalyHistory
+                            values: appController.anomalyValues
                             showUnitLabel: false
                             displayPoints: root.liveDisplayPoints
                             sampleRateHz: 20.0
                             fixedMinY: 0
                             fixedMaxY: 100
                             lineColor: Theme.primary
-                            anomalyActive: dataModel.state === "ANOMALY"
+                            anomalyActive: appController.state === "ANOMALY"
                         }
                     }
 
-                    PanelCard {
+                    ChartCard {
                         width: parent.width
                         height: root.compactChartHeight
                         title: "Acceleration"
 
                         headerContent: AxisSelectorCombo {
-                            id: compactAxisCombo
                             Layout.preferredWidth: 84
-                            model: root.axisSelectorOptions
-                            currentIndex: root.selectedAxisIndex
-
-                            onActivated: root.selectedAxisIndex = currentIndex
+                            model: root.axisOptions
+                            currentIndex: root.axisOptions.indexOf(root.selectedAxis)
+                            onActivated: root.selectedAxis = root.axisOptions[currentIndex]
                         }
 
-                        ColumnLayout {
+                        LiveTrendChart {
                             anchors.fill: parent
-                            anchors.margins: Theme.spaceLg
-                            spacing: Theme.spaceMd
-
-                            LiveTrendChart {
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                Layout.minimumHeight: 0
-                                values: root.selectedAxisValues
-                                unit: "mg"
-                                showUnitLabel: false
-                                displayPoints: root.liveDisplayPoints
-                                sampleRateHz: 20.0
-                                lineColor: root.selectedAxisColor
-                                clampMinYToZero: false
-                                anomalyActive: dataModel.state === "ANOMALY"
-                            }
+                            anchors.margins: 16
+                            values: root.selectedAxisValues
+                            unit: "mg"
+                            showUnitLabel: false
+                            displayPoints: root.liveDisplayPoints
+                            sampleRateHz: 20.0
+                            lineColor: root.selectedAxisColor
+                            clampMinYToZero: false
+                            anomalyActive: appController.state === "ANOMALY"
                         }
                     }
                 }
@@ -306,7 +263,6 @@ Item {
     Loader {
         id: historyPageLoader
         anchors.fill: parent
-        // Load the history screen only when needed so the dashboard stays lightweight.
         active: root.showingHistoryPage
         sourceComponent: Component {
             HistoryPage {

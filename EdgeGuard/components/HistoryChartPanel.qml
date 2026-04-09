@@ -5,7 +5,7 @@ import QtCharts
 import "../utils/HistoryChartUtils.js" as HistoryChartUtils
 import EdgeGuard
 
-PanelCard {
+ChartCard {
     id: root
 
     property alias chartTitle: root.title

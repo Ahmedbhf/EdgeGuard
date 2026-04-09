@@ -1,15 +1,15 @@
 #include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
-#include "backend/datamodel.h"
+#include "backend/controllers/app_controller.h"
 int main(int argc, char *argv[])
 {
     qputenv("QT_QUICK_CONTROLS_STYLE", "Basic");
     QApplication app(argc, argv);
 
     QQmlApplicationEngine engine;
-    DataModel model;
-    engine.rootContext()->setContextProperty("dataModel", &model);
+    AppController appController;
+    engine.rootContext()->setContextProperty("appController", &appController);
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,

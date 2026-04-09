@@ -1,4 +1,4 @@
-#include "data_storage.h"
+#include "data_storage_service.h"
 
 #include <QDir>
 #include <QFile>
@@ -17,9 +17,9 @@ QString resolveStoragePath()
     if (basePath.isEmpty())
         basePath = QDir::currentPath();
 
-    QDir dir(basePath);
-    dir.mkpath(".");
-    return dir.filePath(QStringLiteral("rolling_24h_history.csv"));
+    QDir directory(basePath);
+    directory.mkpath(".");
+    return directory.filePath(QStringLiteral("rolling_24h_history.csv"));
 }
 
 QDateTime parseTimestampUtc(const QString &field)
@@ -28,19 +28,17 @@ QDateTime parseTimestampUtc(const QString &field)
     QDateTime timestamp = QDateTime::fromString(trimmed, Qt::ISODateWithMs);
     if (!timestamp.isValid())
         timestamp = QDateTime::fromString(trimmed, Qt::ISODate);
-    if (timestamp.isValid())
-        timestamp = timestamp.toUTC();
-    return timestamp;
+    return timestamp.isValid() ? timestamp.toUTC() : QDateTime();
 }
 }
 
-DataStorage::DataStorage() : m_storagePath(resolveStoragePath())
+DataStorageService::DataStorageService() : m_storagePath(resolveStoragePath())
 {
     ensureStorageFile();
     cleanOldData();
 }
 
-void DataStorage::appendData(const DataPoint &point)
+void DataStorageService::appendSample(const SensorSample &sample)
 {
     ensureStorageFile();
 
@@ -49,21 +47,21 @@ void DataStorage::appendData(const DataPoint &point)
         return;
 
     QTextStream stream(&file);
-    stream << point.timestampUtc.toString(Qt::ISODateWithMs)
+    stream << sample.timestampUtc.toString(Qt::ISODateWithMs)
            << ','
-           << QString::number(point.anomaly, 'f', 3)
+           << QString::number(sample.anomalyScore, 'f', 3)
            << ','
-           << QString::number(point.x, 'f', 4)
+           << QString::number(sample.x, 'f', 4)
            << ','
-           << QString::number(point.y, 'f', 4)
+           << QString::number(sample.y, 'f', 4)
            << ','
-           << QString::number(point.z, 'f', 4)
+           << QString::number(sample.z, 'f', 4)
            << ','
-           << QString::number(point.temp, 'f', 2)
+           << QString::number(sample.temp, 'f', 2)
            << '\n';
 }
 
-void DataStorage::cleanOldData()
+void DataStorageService::cleanOldData()
 {
     const QString filteredCsv = loadFilteredCsv();
     if (filteredCsv.isEmpty())
@@ -77,12 +75,12 @@ void DataStorage::cleanOldData()
     file.commit();
 }
 
-QString DataStorage::loadLast24h() const
+QString DataStorageService::loadLast24h() const
 {
     return loadFilteredCsv();
 }
 
-bool DataStorage::exportCsv(const QString &destinationPath) const
+bool DataStorageService::exportCsv(const QString &destinationPath) const
 {
     const QString targetPath = destinationPath.trimmed();
     if (targetPath.isEmpty())
@@ -103,10 +101,10 @@ bool DataStorage::exportCsv(const QString &destinationPath) const
     return file.commit();
 }
 
-void DataStorage::ensureStorageFile() const
+void DataStorageService::ensureStorageFile() const
 {
-    QFileInfo info(m_storagePath);
-    QDir().mkpath(info.absolutePath());
+    QFileInfo fileInfo(m_storagePath);
+    QDir().mkpath(fileInfo.absolutePath());
 
     QFile file(m_storagePath);
     if (file.exists() && file.size() > 0)
@@ -118,7 +116,7 @@ void DataStorage::ensureStorageFile() const
     file.write(HeaderLine);
 }
 
-QString DataStorage::loadFilteredCsv() const
+QString DataStorageService::loadFilteredCsv() const
 {
     ensureStorageFile();
 

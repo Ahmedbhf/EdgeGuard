@@ -39,13 +39,13 @@ PanelCard {
                     // This chart uses the rolling vibration history prepared by the backend.
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    values: dataModel.vibrationValues
+                    values: appController.vibrationValues
                     unit: "mg"
                     showUnitLabel: false
                     displayPoints: 120
                     sampleRateHz: 20.0
                     lineColor: "#86BBFF"
-                    anomalyActive: dataModel.state === "ANOMALY"
+                    anomalyActive: appController.state === "ANOMALY"
                 }
             }
         }
@@ -75,13 +75,13 @@ PanelCard {
                     // This second chart reuses the same component with temperature-specific settings.
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    values: dataModel.temperatureValues
+                    values: appController.temperatureValues
                     unit: "\u00B0C"
                     showUnitLabel: false
                     displayPoints: 120
                     sampleRateHz: 20.0
                     lineColor: "#F6AD55"
-                    anomalyActive: dataModel.state === "ANOMALY"
+                    anomalyActive: appController.state === "ANOMALY"
                 }
             }
         }

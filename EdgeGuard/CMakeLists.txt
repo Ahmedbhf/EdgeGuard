@@ -37,6 +37,7 @@ qt_add_qml_module(appEdgeGuard
         components/ControlButton.qml
         components/HistoryChartPanel.qml
         components/PanelCard.qml
+        components/ChartCard.qml
         components/AxisSelectorCombo.qml
         components/StatusTile.qml
         components/ValueCard.qml
@@ -48,7 +49,6 @@ qt_add_qml_module(appEdgeGuard
         theme/Theme.qml
 
     RESOURCES
-        utils/HistoryUtils.js
         utils/ChartUtils.js
         utils/HistoryChartUtils.js
         assets/motor.jpg
@@ -59,12 +59,13 @@ qt_add_qml_module(appEdgeGuard
         assets/other.jpeg
 
     SOURCES
-        backend/datamodel.h
-        backend/datamodel.cpp
-        backend/data_storage.h
-        backend/data_storage.cpp
-        backend/serialmanager.h
-        backend/serialmanager.cpp
+        backend/models/sensor_sample.h
+        backend/services/serial_service.h
+        backend/services/serial_service.cpp
+        backend/services/data_storage_service.h
+        backend/services/data_storage_service.cpp
+        backend/controllers/app_controller.h
+        backend/controllers/app_controller.cpp
 )
 
 target_link_libraries(appEdgeGuard

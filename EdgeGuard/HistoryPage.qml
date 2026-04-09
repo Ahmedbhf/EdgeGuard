@@ -3,8 +3,6 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import "components"
-import "utils/HistoryUtils.js" as HistoryUtils
-import "utils/ChartUtils.js" as ChartUtils
 import EdgeGuard
 
 Rectangle {
@@ -13,59 +11,10 @@ Rectangle {
 
     signal backClicked()
 
-    property bool dataLoaded: false
-    property string statusText: "Loading the last 24 hours of stored history..."
-    property real fullStartMs: 0
-    property real fullEndMs: 1000
-    property real minWindowMs: 1000
-    property real anomalyMinY: 0
-    property real anomalyMaxY: 100
-    property real rmsMinY: 0
-    property real rmsMaxY: 1
-    property real tempMinY: 0
-    property real tempMaxY: 1
-    property var anomalyPoints: []
-    property var rmsPoints: []
-    property var tempPoints: []
-    function refreshHistory() {
-        var csvText = dataModel.loadLast24hCsv()
-        var parsed = HistoryUtils.parseCsv(csvText)
-        if (!parsed.ok) {
-            statusText = parsed.error
-            dataLoaded = false
-            anomalyPoints = []
-            rmsPoints = []
-            tempPoints = []
-            return
-        }
+    readonly property var historyData: appController.historyData
+    readonly property bool dataLoaded: historyData.sampleCount !== undefined && historyData.sampleCount > 0
 
-        fullStartMs = parsed.fullStartMs
-        fullEndMs = parsed.fullEndMs
-        minWindowMs = parsed.minWindowMs
-
-        anomalyMinY = 0
-        anomalyMaxY = 100
-
-        var rmsRange = ChartUtils.computeRange(parsed.rmsValues)
-        rmsMinY = rmsRange.min
-        rmsMaxY = rmsRange.max
-
-        var tempRange = ChartUtils.computeRange(parsed.tempValues)
-        tempMinY = tempRange.min
-        tempMaxY = tempRange.max
-
-        anomalyPoints = parsed.anomalyPoints
-        rmsPoints = parsed.rmsPoints
-        tempPoints = parsed.tempPoints
-        dataLoaded = true
-        statusText = parsed.sampleCount + " samples loaded from the rolling 24-hour store. Hover to inspect points, drag horizontally to scroll, and use the mouse wheel to zoom."
-    }
-
-    function exportHistory() {
-        exportDialog.open()
-    }
-
-    Component.onCompleted: Qt.callLater(refreshHistory)
+    Component.onCompleted: Qt.callLater(appController.refreshHistoryData)
 
     FileDialog {
         id: exportDialog
@@ -73,17 +22,7 @@ Rectangle {
         nameFilters: ["CSV files (*.csv)"]
         fileMode: FileDialog.SaveFile
 
-        onAccepted: {
-            if (dataModel.exportHistoryCsv(selectedFile))
-                root.statusText = "Exported the current 24-hour history."
-            else
-                root.statusText = "Could not export the current 24-hour history."
-        }
-        onRejected: {
-            if (root.dataLoaded)
-                return
-            root.statusText = "Export cancelled."
-        }
+        onAccepted: appController.exportHistoryCsv(selectedFile)
     }
 
     ColumnLayout {
@@ -103,17 +42,17 @@ Rectangle {
             ControlButton {
                 text: "Refresh"
                 primary: true
-                onClicked: root.refreshHistory()
+                onClicked: appController.refreshHistoryData()
             }
 
             ControlButton {
                 text: "Export CSV"
-                onClicked: root.exportHistory()
+                onClicked: exportDialog.open()
             }
 
             Label {
                 Layout.fillWidth: true
-                text: root.statusText
+                text: appController.historyStatusText
                 color: Theme.muted
                 wrapMode: Text.WordWrap
                 font.pixelSize: 12
@@ -124,18 +63,18 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.verticalStretchFactor: 2
-            anomalyPoints: root.anomalyPoints
-            anomalyMinY: root.anomalyMinY
-            anomalyMaxY: root.anomalyMaxY
-            rmsPoints: root.rmsPoints
-            tempPoints: root.tempPoints
-            rmsMinY: root.rmsMinY
-            rmsMaxY: root.rmsMaxY
-            tempMinY: root.tempMinY
-            tempMaxY: root.tempMaxY
-            fullStartMs: root.fullStartMs
-            fullEndMs: root.fullEndMs
-            minimumWindowMs: root.minWindowMs
+            anomalyPoints: historyData.anomalyPoints ? historyData.anomalyPoints : []
+            anomalyMinY: historyData.anomalyMinY !== undefined ? historyData.anomalyMinY : 0
+            anomalyMaxY: historyData.anomalyMaxY !== undefined ? historyData.anomalyMaxY : 100
+            rmsPoints: historyData.rmsPoints ? historyData.rmsPoints : []
+            tempPoints: historyData.tempPoints ? historyData.tempPoints : []
+            rmsMinY: historyData.rmsMinY !== undefined ? historyData.rmsMinY : 0
+            rmsMaxY: historyData.rmsMaxY !== undefined ? historyData.rmsMaxY : 1
+            tempMinY: historyData.tempMinY !== undefined ? historyData.tempMinY : 0
+            tempMaxY: historyData.tempMaxY !== undefined ? historyData.tempMaxY : 1
+            fullStartMs: historyData.fullStartMs !== undefined ? historyData.fullStartMs : 0
+            fullEndMs: historyData.fullEndMs !== undefined ? historyData.fullEndMs : 1000
+            minimumWindowMs: historyData.minimumWindowMs !== undefined ? historyData.minimumWindowMs : 1000
             interactiveEnabled: root.dataLoaded
         }
     }
