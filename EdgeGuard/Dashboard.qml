@@ -8,7 +8,6 @@ import EdgeGuard
 
 Item {
     id: root
-    anchors.fill: parent
 
     property bool showingHistoryPage: false
     property string selectedAxis: "X"

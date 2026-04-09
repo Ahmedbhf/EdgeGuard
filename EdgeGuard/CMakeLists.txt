@@ -47,6 +47,7 @@ qt_add_qml_module(appEdgeGuard
         components/AnomalyStatusPanel.qml
         components/LiveChartsPanel.qml
         components/LiveTrendChart.qml
+        components/FftSpectrumChart.qml
         theme/Theme.qml
 
     RESOURCES
@@ -65,6 +66,8 @@ qt_add_qml_module(appEdgeGuard
         backend/services/serial_service.cpp
         backend/services/data_storage_service.h
         backend/services/data_storage_service.cpp
+        core/services/signal_processing_service.h
+        core/services/signal_processing_service.cpp
         backend/controllers/app_controller.h
         backend/controllers/app_controller.cpp
 )
@@ -75,6 +78,16 @@ target_link_libraries(appEdgeGuard
         Qt6::SerialPort
         Qt6::Charts
         Qt6::Sql
+)
+
+get_filename_component(QT_INSTALL_PREFIX "${Qt6_DIR}/../../.." ABSOLUTE)
+set(QT_SQLITE_PLUGIN "${QT_INSTALL_PREFIX}/plugins/sqldrivers/qsqlite.dll")
+
+add_custom_command(TARGET appEdgeGuard POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:appEdgeGuard>/sqldrivers"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${QT_SQLITE_PLUGIN}"
+            "$<TARGET_FILE_DIR:appEdgeGuard>/sqldrivers/qsqlite.dll"
 )
 
 set_target_properties(appEdgeGuard PROPERTIES

@@ -8,6 +8,8 @@
 #include <cmath>
 
 namespace {
+constexpr int HistoryFftWindowSize = 256;
+
 QVariantMap computePaddedRange(const QVector<double> &values, bool clampMinToZero = true)
 {
     if (values.isEmpty())
@@ -35,6 +37,27 @@ QVariantMap computePaddedRange(const QVector<double> &values, bool clampMinToZer
         { QStringLiteral("min"), clampMinToZero ? std::max(0.0, nextMin) : nextMin },
         { QStringLiteral("max"), maxValue + spread * 0.12 }
     };
+}
+
+QVariantList toVariantList(const QVector<double> &values)
+{
+    QVariantList list;
+    list.reserve(values.size());
+    for (double value : values)
+        list.append(value);
+    return list;
+}
+
+double estimateSampleRateHz(const QVector<qint64> &timestampsMs)
+{
+    if (timestampsMs.size() < 2)
+        return 0.0;
+
+    const qint64 durationMs = timestampsMs.last() - timestampsMs.first();
+    if (durationMs <= 0)
+        return 0.0;
+
+    return ((timestampsMs.size() - 1) * 1000.0) / durationMs;
 }
 }
 
@@ -396,6 +419,7 @@ AppController::ParsedHistory AppController::parseHistorySamples(const QVector<Se
     QVector<double> accelXValues;
     QVector<double> accelYValues;
     QVector<double> accelZValues;
+    QVector<qint64> accelTimestampsMs;
     qint64 firstMs = -1;
     qint64 lastMs = -1;
 
@@ -420,6 +444,7 @@ AppController::ParsedHistory AppController::parseHistorySamples(const QVector<Se
         accelXValues.append(sample.x);
         accelYValues.append(sample.y);
         accelZValues.append(sample.z);
+        accelTimestampsMs.append(pointMs);
     }
 
     if (anomalyPoints.isEmpty()) {
@@ -457,6 +482,34 @@ AppController::ParsedHistory AppController::parseHistorySamples(const QVector<Se
     parsedHistory.data.insert(QStringLiteral("minimumWindowMs"),
                               std::max<qint64>(1000, (safeEndMs - firstMs) / std::min<qint64>(20, anomalyPoints.size())));
     parsedHistory.data.insert(QStringLiteral("sampleCount"), anomalyPoints.size());
+
+    if (accelXValues.size() >= HistoryFftWindowSize) {
+        const int startIndex = accelXValues.size() - HistoryFftWindowSize;
+        const QVector<double> fftXWindow(accelXValues.begin() + startIndex, accelXValues.end());
+        const QVector<double> fftYWindow(accelYValues.begin() + startIndex, accelYValues.end());
+        const QVector<double> fftZWindow(accelZValues.begin() + startIndex, accelZValues.end());
+        const QVector<qint64> fftTimeWindow(accelTimestampsMs.begin() + startIndex, accelTimestampsMs.end());
+        const double sampleRateHz = estimateSampleRateHz(fftTimeWindow);
+
+        if (sampleRateHz > 0.0) {
+            const SignalProcessingService::FFTResult xResult = m_signalProcessingService.computeFFT(fftXWindow, sampleRateHz);
+            const SignalProcessingService::FFTResult yResult = m_signalProcessingService.computeFFT(fftYWindow, sampleRateHz);
+            const SignalProcessingService::FFTResult zResult = m_signalProcessingService.computeFFT(fftZWindow, sampleRateHz);
+
+            parsedHistory.data.insert(QStringLiteral("fftFrequencies"), toVariantList(xResult.frequencies));
+            parsedHistory.data.insert(QStringLiteral("fftXMagnitudes"), toVariantList(xResult.magnitudes));
+            parsedHistory.data.insert(QStringLiteral("fftYMagnitudes"), toVariantList(yResult.magnitudes));
+            parsedHistory.data.insert(QStringLiteral("fftZMagnitudes"), toVariantList(zResult.magnitudes));
+            parsedHistory.data.insert(QStringLiteral("fftXDominantFrequency"), xResult.dominantFrequency);
+            parsedHistory.data.insert(QStringLiteral("fftYDominantFrequency"), yResult.dominantFrequency);
+            parsedHistory.data.insert(QStringLiteral("fftZDominantFrequency"), zResult.dominantFrequency);
+            parsedHistory.data.insert(QStringLiteral("fftXEnergy"), xResult.energy);
+            parsedHistory.data.insert(QStringLiteral("fftYEnergy"), yResult.energy);
+            parsedHistory.data.insert(QStringLiteral("fftZEnergy"), zResult.energy);
+            parsedHistory.data.insert(QStringLiteral("fftMaxFrequency"), sampleRateHz / 2.0);
+        }
+    }
+
     parsedHistory.statusText = QStringLiteral("%1 samples loaded from the local 24-hour history database.")
                                    .arg(anomalyPoints.size());
     return parsedHistory;

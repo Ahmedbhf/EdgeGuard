@@ -4,6 +4,7 @@
 #include "../models/sensor_sample.h"
 #include "../services/data_storage_service.h"
 #include "../services/serial_service.h"
+#include "../../core/services/signal_processing_service.h"
 
 #include <QObject>
 #include <QStringList>
@@ -122,6 +123,7 @@ private:
 
     SerialService m_serialService;
     DataStorageService m_storageService;
+    SignalProcessingService m_signalProcessingService;
     QString m_selectedPort;
     QString m_machineType;
     QString m_deviceId;
