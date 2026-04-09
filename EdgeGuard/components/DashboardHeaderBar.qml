@@ -6,18 +6,21 @@ Rectangle {
     id: root
     property string title: "Edge Maintenance Monitor"
     property bool compact: width < 1280
+    readonly property bool stacked: width < 980
 
     signal connectionToggled()
     signal exportCsvClicked()
     signal historyClicked()
     signal themeToggleClicked()
 
-    height: 72
+    implicitHeight: stacked ? 126 : 72
+    height: implicitHeight
     color: Theme.panel
     border.color: Theme.borderSoft
     border.width: 1
 
     RowLayout {
+        visible: !root.stacked
         anchors.fill: parent
         anchors.margins: 16
         spacing: 12
@@ -51,6 +54,75 @@ Rectangle {
         RowLayout {
             spacing: 8
             Layout.alignment: Qt.AlignVCenter
+
+            ControlButton {
+                text: dataModel.connected ? "Disconnect" : "Connect"
+                primary: dataModel.connected
+                onClicked: root.connectionToggled()
+            }
+
+            ControlButton {
+                text: Theme.lightMode ? "Dark Mode" : "Light Mode"
+                onClicked: root.themeToggleClicked()
+            }
+
+            ControlButton {
+                text: "Export CSV"
+                primary: true
+                enabled: dataModel.csvFilePath.length > 0
+                onClicked: root.exportCsvClicked()
+            }
+
+            ControlButton {
+                text: dataModel.loggingEnabled ? "Stop Logging" : "Start Logging"
+                primary: dataModel.loggingEnabled
+                enabled: dataModel.connected || dataModel.loggingEnabled
+                onClicked: dataModel.loggingEnabled ? dataModel.stopLogging() : dataModel.startLogging()
+            }
+
+            ControlButton {
+                text: "History"
+                onClicked: root.historyClicked()
+            }
+        }
+    }
+
+    ColumnLayout {
+        visible: root.stacked
+        anchors.fill: parent
+        anchors.margins: 12
+        spacing: 10
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 8
+
+            Text {
+                text: root.title
+                color: Theme.text
+                font.pixelSize: 16
+                font.bold: true
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+            }
+
+            Text {
+                visible: dataModel.machineType.length > 0 || dataModel.deviceId.length > 0
+                text: dataModel.machineType.length > 0
+                      ? dataModel.machineType + " (" + (dataModel.deviceId.length > 0 ? dataModel.deviceId : "Waiting for UID") + ")"
+                      : "Waiting for UID"
+                color: Theme.muted
+                font.pixelSize: 12
+                elide: Text.ElideRight
+                Layout.maximumWidth: 220
+                Layout.alignment: Qt.AlignVCenter
+            }
+        }
+
+        Flow {
+            Layout.fillWidth: true
+            spacing: 8
 
             ControlButton {
                 text: dataModel.connected ? "Disconnect" : "Connect"

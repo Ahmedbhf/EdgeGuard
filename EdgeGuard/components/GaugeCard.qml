@@ -16,7 +16,7 @@ Rectangle {
     readonly property real clampedValue: Math.max(min, Math.min(max, value))
     readonly property real progress: (clampedValue - min) / safeRange
     readonly property color gaugeColor: zoneColorForValue(clampedValue)
-    readonly property color trackColor: Theme.lightMode ? "#e8edf4" : "#1a1d23"
+    readonly property color trackColor: Theme.lightMode ? "#d9e1ea" : "#1c2128"
     readonly property string displayValue: formatValue(clampedValue)
 
     radius: Theme.radiusLg
@@ -28,11 +28,11 @@ Rectangle {
     function normalizeColor(value) {
         if (typeof value === "string") {
             if (value === "green" || value === "ok")
-                return Theme.ok
+                return "#22c55e"
             if (value === "yellow" || value === "warning")
-                return Theme.warning
+                return "#f59e0b"
             if (value === "red" || value === "fault")
-                return Theme.fault
+                return "#ef4444"
         }
 
         return value || Theme.primary
@@ -68,75 +68,122 @@ Rectangle {
         return rounded.toFixed(1)
     }
 
-    Canvas {
-        id: gaugeCanvas
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.topMargin: Theme.spaceLg
-        anchors.leftMargin: Theme.spaceLg
-        anchors.rightMargin: Theme.spaceLg
-        height: Math.min(parent.height * 0.62, width * 0.68)
-        antialiasing: true
+    Item {
+        id: contentBlock
+        anchors.centerIn: parent
+        width: parent.width - Theme.spaceLg * 2
+        height: gaugeCanvas.height + Theme.spaceMd + valueColumn.implicitHeight
 
-        onPaint: {
-            var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
+        Canvas {
+            id: gaugeCanvas
+            anchors.top: parent.top
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
+            height: Math.min(root.height * 0.5, width * 0.58)
+            antialiasing: true
 
-            var strokeWidth = 14
-            var centerX = width / 2
-            var centerY = height - strokeWidth
-            var radius = Math.max(0, Math.min(width * 0.38, height - strokeWidth * 1.5))
+            onPaint: {
+                var ctx = getContext("2d")
+                ctx.clearRect(0, 0, width, height)
 
-            ctx.lineCap = "round"
+                var baseStrokeWidth = 18
+                var zoneStrokeWidth = 16
+                var activeStrokeWidth = 18
+                var centerX = width / 2
+                var centerY = height - 28
+                var radius = Math.max(0, Math.min(width * 0.36, height - 50))
+                var needleAngle = root.valueToAngle(root.clampedValue)
+                var needleLength = radius - 24
+                var innerRadius = 14
+                var needleTailLength = 8
 
-            ctx.beginPath()
-            ctx.strokeStyle = root.trackColor
-            ctx.lineWidth = strokeWidth
-            ctx.arc(centerX, centerY, radius, Math.PI, Math.PI * 2, false)
-            ctx.stroke()
+                ctx.lineCap = "round"
 
-            if (root.zones && root.zones.length > 0) {
-                for (var i = 0; i < root.zones.length; ++i) {
-                    var zone = root.zones[i]
-                    var startAngle = root.valueToAngle(Math.max(root.min, zone.from))
-                    var endAngle = root.valueToAngle(Math.min(root.max, zone.to))
+                ctx.beginPath()
+                ctx.strokeStyle = root.trackColor
+                ctx.lineWidth = baseStrokeWidth
+                ctx.arc(centerX, centerY, radius, Math.PI, Math.PI * 2, false)
+                ctx.stroke()
 
-                    ctx.beginPath()
-                    ctx.strokeStyle = root.colorWithAlpha(zone.color, Theme.lightMode ? 0.18 : 0.26)
-                    ctx.lineWidth = strokeWidth
-                    ctx.arc(centerX, centerY, radius, startAngle, endAngle, false)
-                    ctx.stroke()
+                if (root.zones && root.zones.length > 0) {
+                    for (var i = 0; i < root.zones.length; ++i) {
+                        var zone = root.zones[i]
+                        var startAngle = root.valueToAngle(Math.max(root.min, zone.from))
+                        var endAngle = root.valueToAngle(Math.min(root.max, zone.to))
+                        var gap = 0.02
+
+                        if (endAngle - startAngle <= gap * 2)
+                            gap = 0
+
+                        startAngle += gap
+                        endAngle -= gap
+
+                        ctx.beginPath()
+                        ctx.strokeStyle = root.colorWithAlpha(zone.color, Theme.lightMode ? 0.95 : 0.9)
+                        ctx.lineWidth = zoneStrokeWidth
+                        ctx.arc(centerX, centerY, radius, startAngle, endAngle, false)
+                        ctx.stroke()
+                    }
                 }
+
+                ctx.beginPath()
+                ctx.strokeStyle = root.gaugeColor
+                ctx.lineWidth = activeStrokeWidth
+                ctx.arc(centerX, centerY, radius, Math.PI, Math.PI + (root.progress * Math.PI), false)
+                ctx.stroke()
+
+                ctx.beginPath()
+                ctx.strokeStyle = Theme.lightMode ? "#111827" : "#f8fafc"
+                ctx.lineWidth = 5
+                ctx.moveTo(
+                    centerX - Math.cos(needleAngle) * needleTailLength,
+                    centerY - Math.sin(needleAngle) * needleTailLength
+                )
+                ctx.lineTo(
+                    centerX + Math.cos(needleAngle) * needleLength,
+                    centerY + Math.sin(needleAngle) * needleLength
+                )
+                ctx.stroke()
+
+                ctx.beginPath()
+                ctx.fillStyle = root.gaugeColor
+                ctx.arc(centerX, centerY, innerRadius / 2, 0, Math.PI * 2, false)
+                ctx.fill()
+
+                ctx.beginPath()
+                ctx.fillStyle = Theme.lightMode ? "#f8fafc" : "#111827"
+                ctx.arc(centerX, centerY, 4, 0, Math.PI * 2, false)
+                ctx.fill()
+            }
+        }
+
+        Column {
+            id: valueColumn
+            anchors.top: gaugeCanvas.bottom
+            anchors.topMargin: Theme.spaceMd
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
+            spacing: 2
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width
+                text: root.label
+                color: Theme.muted
+                font.pixelSize: 14
+                font.weight: Font.Medium
+                horizontalAlignment: Text.AlignHCenter
             }
 
-            ctx.beginPath()
-            ctx.strokeStyle = root.gaugeColor
-            ctx.lineWidth = strokeWidth
-            ctx.arc(centerX, centerY, radius, Math.PI, Math.PI + (root.progress * Math.PI), false)
-            ctx.stroke()
-        }
-    }
-
-    Column {
-        anchors.horizontalCenter: gaugeCanvas.horizontalCenter
-        anchors.verticalCenter: gaugeCanvas.verticalCenter
-        anchors.verticalCenterOffset: gaugeCanvas.height * 0.18
-        spacing: Theme.spaceXs
-
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: root.displayValue
-            color: Theme.text
-            font.pixelSize: 40
-            font.weight: Font.DemiBold
-        }
-
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: root.label
-            color: Theme.muted
-            font.pixelSize: 13
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width
+                text: root.displayValue
+                color: Theme.text
+                font.pixelSize: 44
+                font.weight: Font.Bold
+                horizontalAlignment: Text.AlignHCenter
+            }
         }
     }
 

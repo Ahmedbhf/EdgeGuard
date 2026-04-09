@@ -14,6 +14,10 @@ Item {
     property bool showingHistoryPage: false
     property var anomalyHistory: []
     readonly property int liveDisplayPoints: 120
+    readonly property bool compactLayout: width < 1100 || height < 700
+    readonly property int contentMargin: compactLayout ? Theme.spaceMd : Theme.spaceLg
+    readonly property int compactGaugeHeight: height < 600 ? 210 : 240
+    readonly property int compactChartHeight: height < 600 ? 220 : 250
 
     function appendHistoryValue(series, nextValue, maxPoints) {
         var nextSeries = series ? series.slice(0) : []
@@ -67,12 +71,21 @@ Item {
             onThemeToggleClicked: Theme.toggleMode()
         }
 
-        ColumnLayout {
+        Loader {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.leftMargin: 16
-            Layout.rightMargin: 16
-            Layout.bottomMargin: 16
+            sourceComponent: root.compactLayout ? compactDashboardContent : desktopDashboardContent
+        }
+    }
+
+    Component {
+        id: desktopDashboardContent
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.leftMargin: root.contentMargin
+            anchors.rightMargin: root.contentMargin
+            anchors.bottomMargin: root.contentMargin
             spacing: Theme.spaceLg
 
             RowLayout {
@@ -160,6 +173,89 @@ Item {
                             { from: 45, to: 70, color: "yellow" },
                             { from: 70, to: 100, color: "red" }
                         ]
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: compactDashboardContent
+
+        ScrollView {
+            clip: true
+
+            Item {
+                width: parent.width
+                implicitHeight: compactColumn.implicitHeight + root.contentMargin * 2
+
+                Column {
+                    id: compactColumn
+                    x: root.contentMargin
+                    y: root.contentMargin
+                    width: parent.width - root.contentMargin * 2
+                    spacing: Theme.spaceMd
+
+                    GaugeCard {
+                        width: parent.width
+                        height: root.compactGaugeHeight
+                        value: dataModel.anomalyScore
+                        label: "Anomaly Score"
+                        zones: [
+                            { from: 0, to: 40, color: "red" },
+                            { from: 40, to: 80, color: "yellow" },
+                            { from: 80, to: 100, color: "green" }
+                        ]
+                    }
+
+                    GaugeCard {
+                        width: parent.width
+                        height: root.compactGaugeHeight
+                        value: dataModel.temp
+                        max: 100
+                        label: "Machine Temperature"
+                        zones: [
+                            { from: 0, to: 45, color: "green" },
+                            { from: 45, to: 70, color: "yellow" },
+                            { from: 70, to: 100, color: "red" }
+                        ]
+                    }
+
+                    PanelCard {
+                        width: parent.width
+                        height: root.compactChartHeight
+                        title: "Anomaly Score vs Time"
+
+                        LiveTrendChart {
+                            anchors.fill: parent
+                            anchors.margins: 16
+                            values: root.anomalyHistory
+                            showUnitLabel: false
+                            displayPoints: root.liveDisplayPoints
+                            sampleRateHz: 20.0
+                            fixedMinY: 0
+                            fixedMaxY: 100
+                            lineColor: Theme.primary
+                            anomalyActive: dataModel.state === "ANOMALY"
+                        }
+                    }
+
+                    PanelCard {
+                        width: parent.width
+                        height: root.compactChartHeight
+                        title: "RMS Vibration vs Time"
+
+                        LiveTrendChart {
+                            anchors.fill: parent
+                            anchors.margins: 16
+                            values: dataModel.vibrationValues
+                            unit: "mg"
+                            showUnitLabel: false
+                            displayPoints: root.liveDisplayPoints
+                            sampleRateHz: 20.0
+                            lineColor: "#86BBFF"
+                            anomalyActive: dataModel.state === "ANOMALY"
+                        }
                     }
                 }
             }

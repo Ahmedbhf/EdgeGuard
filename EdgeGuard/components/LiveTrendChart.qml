@@ -32,19 +32,11 @@ Rectangle {
     readonly property real totalTimeSec: displayPoints / Math.max(1, sampleRateHz)
     readonly property real secondsPerStep: totalTimeSec / Math.max(1, displayPoints - 1)
     readonly property real currentValue: values && values.length > 0 ? values[values.length - 1] : 0
-    readonly property real xTickStep: chooseStep(totalTimeSec, [0.5, 1, 2, 5, 10, 15, 30, 60])
-    readonly property real yTickStep: chooseStep(Math.max(0.5, effectiveMaxY - fixedMinY), [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50])
-    readonly property string xLabelFormat: xTickStep < 1 ? "%.1f" : "%.0f"
-    readonly property string yLabelFormat: yTickStep < 1 ? "%.1f" : "%.0f"
-
-    function chooseStep(range, candidates) {
-        var desiredStep = range / 5
-        for (var i = 0; i < candidates.length; ++i) {
-            if (candidates[i] >= desiredStep)
-                return candidates[i]
-        }
-
-        return candidates[candidates.length - 1]
+    readonly property string updateRateText: {
+        var intervalMs = 1000 / Math.max(0.001, sampleRateHz)
+        if (intervalMs >= 1000)
+            return "Chart updates every " + (intervalMs / 1000).toFixed(intervalMs % 1000 === 0 ? 0 : 1) + " s"
+        return "Chart updates every " + Math.round(intervalMs) + " ms"
     }
 
     function updateDynamicMax() {
@@ -66,15 +58,15 @@ Rectangle {
         var count = Math.min(values.length, displayPoints)
         var start = values.length - count
 
-        // Plot from oldest to newest across the visible time window.
+        // Keep the newest point anchored at time 0 on the right edge.
         for (var i = 0; i < count; i++) {
-            var x = i * secondsPerStep
+            var x = -((count - 1 - i) * secondsPerStep)
             glowLineSeries.append(x, values[start + i])
             trendSeries.append(x, values[start + i])
         }
 
-        glowSeries.append((count - 1) * secondsPerStep, currentValue)
-        markerSeries.append((count - 1) * secondsPerStep, currentValue)
+        glowSeries.append(0, currentValue)
+        markerSeries.append(0, currentValue)
     }
 
     ChartView {
@@ -86,26 +78,22 @@ Rectangle {
         backgroundRoundness: 0
         backgroundColor: "transparent"
         plotAreaColor: "transparent"
-        margins.top: 6
-        margins.left: 6
-        margins.right: 6
-        margins.bottom: 6
+        margins.top: 0
+        margins.left: 0
+        margins.right: 0
+        margins.bottom: 14
 
         ValueAxis {
             id: axisX
-            min: 0
-            max: root.totalTimeSec
-            tickType: ValueAxis.TicksDynamic
-            tickAnchor: 0
-            tickInterval: root.xTickStep
-            labelFormat: root.xLabelFormat
-            labelsColor: root.axisTextColor
+            min: -root.totalTimeSec
+            max: 0
+            tickCount: 6
+            labelFormat: ""
+            labelsColor: "transparent"
             labelsFont.pixelSize: 10
-            titleText: "Time (s)"
             gridVisible: true
             gridLineColor: root.verticalGridColor
-            lineVisible: true
-            linePenColor: root.verticalGridColor
+            lineVisible: false
             shadesVisible: false
         }
 
@@ -113,18 +101,14 @@ Rectangle {
             id: axisY
             min: root.fixedMinY
             max: root.effectiveMaxY
-            tickType: ValueAxis.TicksDynamic
-            tickAnchor: root.fixedMinY
-            tickInterval: root.yTickStep
-            labelFormat: root.yLabelFormat
+            tickCount: 5
+            labelFormat: root.effectiveMaxY - root.fixedMinY >= 10 ? "%.0f" : "%.1f"
             labelsColor: root.axisTextColor
             labelsFont.pixelSize: 10
-            titleText: root.unit.length > 0 ? root.unit : "Value"
             gridVisible: true
             gridLineColor: root.horizontalGridColor
             minorGridVisible: false
-            lineVisible: true
-            linePenColor: root.horizontalGridColor
+            lineVisible: false
             shadesVisible: false
         }
 
@@ -172,6 +156,16 @@ Rectangle {
         anchors.bottomMargin: 2
         text: root.unit
         color: root.axisTextColor
+        font.pixelSize: 10
+    }
+
+    Text {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 0
+        text: root.updateRateText
+        color: root.axisTextColor
+        opacity: 0.7
         font.pixelSize: 10
     }
 

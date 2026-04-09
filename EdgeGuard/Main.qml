@@ -4,11 +4,12 @@ import EdgeGuard
 
 ApplicationWindow {
     id: root
-    width: 1920
-    height: 1080
+    width: 1280
+    height: 800
+    minimumWidth: 800
+    minimumHeight: 480
     visible: true
     color: Theme.bg
-    visibility: Window.Maximized
 
     StackView {
         id: appStackView
