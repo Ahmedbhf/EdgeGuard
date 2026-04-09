@@ -37,6 +37,7 @@ qt_add_qml_module(appEdgeGuard
         components/ControlButton.qml
         components/HistoryChartPanel.qml
         components/PanelCard.qml
+        components/AxisSelectorCombo.qml
         components/StatusTile.qml
         components/ValueCard.qml
         components/GaugeCard.qml

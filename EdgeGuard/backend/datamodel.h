@@ -20,6 +20,9 @@ class DataModel : public QObject
     Q_PROPERTY(double ambientTemp READ ambientTemp NOTIFY dataChanged)
     Q_PROPERTY(QVector<double> vibrationValues READ vibrationValues NOTIFY vibrationValuesChanged)
     Q_PROPERTY(QVector<double> temperatureValues READ temperatureValues NOTIFY temperatureValuesChanged)
+    Q_PROPERTY(QVector<double> xAxisValues READ xAxisValues NOTIFY xAxisValuesChanged)
+    Q_PROPERTY(QVector<double> yAxisValues READ yAxisValues NOTIFY yAxisValuesChanged)
+    Q_PROPERTY(QVector<double> zAxisValues READ zAxisValues NOTIFY zAxisValuesChanged)
     Q_PROPERTY(bool connected READ connected NOTIFY connectedChanged)
     Q_PROPERTY(QStringList availablePorts READ availablePorts NOTIFY availablePortsChanged)
     Q_PROPERTY(QString currentPort READ currentPort NOTIFY connectedChanged)
@@ -41,6 +44,9 @@ public:
     double ambientTemp() const { return m_ambientTemp; }
     QVector<double> vibrationValues() const { return m_vibration; }
     QVector<double> temperatureValues() const { return m_temperature; }
+    QVector<double> xAxisValues() const { return m_xHistory; }
+    QVector<double> yAxisValues() const { return m_yHistory; }
+    QVector<double> zAxisValues() const { return m_zHistory; }
     bool connected() const { return m_serial->connected(); }
     QStringList availablePorts() const { return m_serial->portDisplayNames(); }
     QString currentPort() const { return connected() ? m_serial->currentPort() : m_selectedPort; }
@@ -68,6 +74,9 @@ signals:
     void dataChanged();
     void vibrationValuesChanged();
     void temperatureValuesChanged();
+    void xAxisValuesChanged();
+    void yAxisValuesChanged();
+    void zAxisValuesChanged();
     void connectedChanged();
     void availablePortsChanged();
     void selectedPortChanged();
@@ -110,6 +119,9 @@ signals:
     double m_x = 0.0, m_y = 0.0, m_z = 0.0, m_rms = 0.0, m_anomalyScore = 0.0, m_temp = 0.0, m_ambientTemp = 0.0;
     QVector<double> m_vibration;
     QVector<double> m_temperature;
+    QVector<double> m_xHistory;
+    QVector<double> m_yHistory;
+    QVector<double> m_zHistory;
     QStringList m_logs;
     QFile m_csv;
     QTimer m_uiSampleTimer;
@@ -119,6 +131,9 @@ signals:
     int m_csvWritesSinceFlush = 0;
     double m_windowRmsSquareSum = 0.0;
     double m_windowTempSum = 0.0;
+    double m_windowXSum = 0.0;
+    double m_windowYSum = 0.0;
+    double m_windowZSum = 0.0;
 
     // Small fixed limits keep charts and logs responsive even during long runs.
     static constexpr int MaxHistory = 300;

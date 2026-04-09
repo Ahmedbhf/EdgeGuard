@@ -147,6 +147,9 @@ void DataModel::processSample(double anomalyScore, double x, double y, double z,
     // These accumulators let us average short bursts of samples before refreshing the charts.
     m_windowRmsSquareSum += (m_rms * m_rms);
     m_windowTempSum += m_temp;
+    m_windowXSum += m_x;
+    m_windowYSum += m_y;
+    m_windowZSum += m_z;
     ++m_windowSampleCount;
     m_pendingUiRefresh = true;
     writeCsv();
@@ -192,16 +195,28 @@ void DataModel::flushUiSamples()
         // Average the short window so the chart shows smoother values and fewer redraws.
         const double aggregatedRms = std::sqrt(m_windowRmsSquareSum / m_windowSampleCount);
         const double aggregatedTemp = m_windowTempSum / m_windowSampleCount;
+        const double aggregatedX = m_windowXSum / m_windowSampleCount;
+        const double aggregatedY = m_windowYSum / m_windowSampleCount;
+        const double aggregatedZ = m_windowZSum / m_windowSampleCount;
 
         trim(m_vibration, aggregatedRms, MaxHistory);
         trim(m_temperature, aggregatedTemp, MaxHistory);
+        trim(m_xHistory, aggregatedX, MaxHistory);
+        trim(m_yHistory, aggregatedY, MaxHistory);
+        trim(m_zHistory, aggregatedZ, MaxHistory);
         emit vibrationValuesChanged();
         emit temperatureValuesChanged();
+        emit xAxisValuesChanged();
+        emit yAxisValuesChanged();
+        emit zAxisValuesChanged();
     }
 
     m_windowSampleCount = 0;
     m_windowRmsSquareSum = 0.0;
     m_windowTempSum = 0.0;
+    m_windowXSum = 0.0;
+    m_windowYSum = 0.0;
+    m_windowZSum = 0.0;
 
     if (m_pendingUiRefresh)
         emit dataChanged();

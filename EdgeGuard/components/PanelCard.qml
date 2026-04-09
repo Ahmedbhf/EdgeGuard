@@ -8,6 +8,7 @@ Rectangle {
 
     property string title: ""
     default property alias content: body.data
+    property alias headerContent: headerContentItem.data
 
     radius: 16
     color: Theme.panel
@@ -23,14 +24,29 @@ Rectangle {
             Layout.preferredHeight: 48
             color: "transparent"
 
-            Label {
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.left: parent.left
+            RowLayout {
+                anchors.fill: parent
                 anchors.leftMargin: 16
-                text: root.title
-                font.pixelSize: 14
-                font.weight: Font.DemiBold
-                color: Theme.text
+                anchors.rightMargin: 16
+                spacing: Theme.spaceMd
+
+                Label {
+                    Layout.alignment: Qt.AlignVCenter
+                    text: root.title
+                    font.pixelSize: 14
+                    font.weight: Font.DemiBold
+                    color: Theme.text
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                }
+
+                RowLayout {
+                    id: headerContentItem
+                    Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                    spacing: Theme.spaceSm
+                }
             }
 
             Rectangle {

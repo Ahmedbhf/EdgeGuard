@@ -18,6 +18,14 @@ Item {
     readonly property int contentMargin: compactLayout ? Theme.spaceMd : Theme.spaceLg
     readonly property int compactGaugeHeight: height < 600 ? 210 : 240
     readonly property int compactChartHeight: height < 600 ? 220 : 250
+    property int selectedAxisIndex: 0
+    readonly property var axisSelectorOptions: ["X", "Y", "Z"]
+    readonly property var selectedAxisValues: selectedAxisIndex === 0
+                                            ? dataModel.xAxisValues
+                                            : (selectedAxisIndex === 1 ? dataModel.yAxisValues : dataModel.zAxisValues)
+    readonly property color selectedAxisColor: selectedAxisIndex === 0
+                                             ? "#86BBFF"
+                                             : (selectedAxisIndex === 1 ? "#34D399" : "#F59E0B")
 
     function appendHistoryValue(series, nextValue, maxPoints) {
         var nextSeries = series ? series.slice(0) : []
@@ -125,18 +133,35 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.minimumHeight: 0
-                        title: "RMS Vibration vs Time"
+                        title: "Acceleration"
 
-                        LiveTrendChart {
+                        headerContent: AxisSelectorCombo {
+                            id: desktopAxisCombo
+                            Layout.preferredWidth: 84
+                            model: root.axisSelectorOptions
+                            currentIndex: root.selectedAxisIndex
+
+                            onActivated: root.selectedAxisIndex = currentIndex
+                        }
+
+                        ColumnLayout {
                             anchors.fill: parent
-                            anchors.margins: 16
-                            values: dataModel.vibrationValues
-                            unit: "mg"
-                            showUnitLabel: false
-                            displayPoints: root.liveDisplayPoints
-                            sampleRateHz: 20.0
-                            lineColor: "#86BBFF"
-                            anomalyActive: dataModel.state === "ANOMALY"
+                            anchors.margins: Theme.spaceLg
+                            spacing: Theme.spaceMd
+
+                            LiveTrendChart {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                Layout.minimumHeight: 0
+                                values: root.selectedAxisValues
+                                unit: "mg"
+                                showUnitLabel: false
+                                displayPoints: root.liveDisplayPoints
+                                sampleRateHz: 20.0
+                                lineColor: root.selectedAxisColor
+                                clampMinYToZero: false
+                                anomalyActive: dataModel.state === "ANOMALY"
+                            }
                         }
                     }
                 }
@@ -243,18 +268,35 @@ Item {
                     PanelCard {
                         width: parent.width
                         height: root.compactChartHeight
-                        title: "RMS Vibration vs Time"
+                        title: "Acceleration"
 
-                        LiveTrendChart {
+                        headerContent: AxisSelectorCombo {
+                            id: compactAxisCombo
+                            Layout.preferredWidth: 84
+                            model: root.axisSelectorOptions
+                            currentIndex: root.selectedAxisIndex
+
+                            onActivated: root.selectedAxisIndex = currentIndex
+                        }
+
+                        ColumnLayout {
                             anchors.fill: parent
-                            anchors.margins: 16
-                            values: dataModel.vibrationValues
-                            unit: "mg"
-                            showUnitLabel: false
-                            displayPoints: root.liveDisplayPoints
-                            sampleRateHz: 20.0
-                            lineColor: "#86BBFF"
-                            anomalyActive: dataModel.state === "ANOMALY"
+                            anchors.margins: Theme.spaceLg
+                            spacing: Theme.spaceMd
+
+                            LiveTrendChart {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                Layout.minimumHeight: 0
+                                values: root.selectedAxisValues
+                                unit: "mg"
+                                showUnitLabel: false
+                                displayPoints: root.liveDisplayPoints
+                                sampleRateHz: 20.0
+                                lineColor: root.selectedAxisColor
+                                clampMinYToZero: false
+                                anomalyActive: dataModel.state === "ANOMALY"
+                            }
                         }
                     }
                 }

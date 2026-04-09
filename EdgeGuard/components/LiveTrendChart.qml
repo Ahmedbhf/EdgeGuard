@@ -17,18 +17,21 @@ Rectangle {
     property real sampleRateHz: 10.0
     property real fixedMinY: 0.0
     property real fixedMaxY: -1
+    property real calculatedMinY: 0.0
     property real calculatedMaxY: 1.0
     property bool anomalyActive: false
     property bool showUnitLabel: true
+    property bool clampMinYToZero: true
 
     readonly property bool isDarkMode: !Theme.lightMode
     readonly property color effectiveLineColor: anomalyActive ? "#EF4444" : lineColor
-    readonly property color lineGlowColor: Qt.rgba(effectiveLineColor.r, effectiveLineColor.g, effectiveLineColor.b, 0.16)
+    readonly property color lineGlowColor: "transparent"
     readonly property color horizontalGridColor: isDarkMode ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.08)
     readonly property color verticalGridColor: isDarkMode ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.06)
     readonly property color axisTextColor: isDarkMode ? "#aeb6c2" : "#7b8794"
-    readonly property color latestGlowColor: Qt.rgba(effectiveLineColor.r, effectiveLineColor.g, effectiveLineColor.b, 0.20)
-    readonly property real effectiveMaxY: fixedMaxY > 0 ? fixedMaxY : calculatedMaxY
+    readonly property color latestGlowColor: "transparent"
+    readonly property real effectiveMinY: fixedMaxY > fixedMinY ? fixedMinY : calculatedMinY
+    readonly property real effectiveMaxY: fixedMaxY > effectiveMinY ? fixedMaxY : calculatedMaxY
     readonly property real totalTimeSec: displayPoints / Math.max(1, sampleRateHz)
     readonly property real secondsPerStep: totalTimeSec / Math.max(1, displayPoints - 1)
     readonly property real currentValue: values && values.length > 0 ? values[values.length - 1] : 0
@@ -39,14 +42,16 @@ Rectangle {
         return "Chart updates every " + Math.round(intervalMs) + " ms"
     }
 
-    function updateDynamicMax() {
+    function updateDynamicRange() {
         // Pick a readable Y range automatically so the chart is easy to scan during live updates.
-        calculatedMaxY = ChartUtils.computeDynamicMax(values)
+        var range = ChartUtils.computeRange(values, clampMinYToZero)
+        calculatedMinY = range.min
+        calculatedMaxY = range.max
     }
 
     function rebuildSeries() {
         // Rebuild all chart layers whenever the input values or visual settings change.
-        updateDynamicMax()
+        updateDynamicRange()
         glowLineSeries.clear()
         trendSeries.clear()
         glowSeries.clear()
@@ -99,10 +104,10 @@ Rectangle {
 
         ValueAxis {
             id: axisY
-            min: root.fixedMinY
+            min: root.effectiveMinY
             max: root.effectiveMaxY
             tickCount: 5
-            labelFormat: root.effectiveMaxY - root.fixedMinY >= 10 ? "%.0f" : "%.1f"
+            labelFormat: root.effectiveMaxY - root.effectiveMinY >= 10 ? "%.0f" : "%.1f"
             labelsColor: root.axisTextColor
             labelsFont.pixelSize: 10
             gridVisible: true
@@ -117,7 +122,7 @@ Rectangle {
             axisX: axisX
             axisY: axisY
             color: root.lineGlowColor
-            width: 5.0
+            width: 0
         }
 
         LineSeries {
@@ -125,7 +130,7 @@ Rectangle {
             axisX: axisX
             axisY: axisY
             color: root.effectiveLineColor
-            width: 2.2
+            width: 2.8
         }
 
         ScatterSeries {
@@ -135,7 +140,7 @@ Rectangle {
             axisY: axisY
             color: root.latestGlowColor
             borderColor: "transparent"
-            markerSize: 16
+            markerSize: 0
         }
 
         ScatterSeries {
@@ -144,7 +149,7 @@ Rectangle {
             axisY: axisY
             color: root.effectiveLineColor
             borderColor: "transparent"
-            markerSize: 6
+            markerSize: 4
         }
     }
 
@@ -175,6 +180,7 @@ Rectangle {
     onFixedMinYChanged: rebuildSeries()
     onFixedMaxYChanged: rebuildSeries()
     onAnomalyActiveChanged: rebuildSeries()
+    onClampMinYToZeroChanged: rebuildSeries()
     onLineColorChanged: rebuildSeries()
     onShowUnitLabelChanged: rebuildSeries()
     Component.onCompleted: rebuildSeries()

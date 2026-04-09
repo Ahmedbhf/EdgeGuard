@@ -1,7 +1,10 @@
 .pragma library
 
 // Compute a padded min/max range for charts that display a full data set.
-function computeRange(values) {
+function computeRange(values, clampMinToZero) {
+    if (clampMinToZero === undefined)
+        clampMinToZero = true
+
     if (!values || values.length === 0)
         return { min: 0, max: 1 }
 
@@ -14,12 +17,17 @@ function computeRange(values) {
 
     if (minValue === maxValue) {
         var pad = Math.max(1, Math.abs(minValue) * 0.2)
-        return { min: minValue - pad, max: maxValue + pad }
+        var flatMin = minValue - pad
+        return {
+            min: clampMinToZero ? Math.max(0, flatMin) : flatMin,
+            max: maxValue + pad
+        }
     }
 
     var spread = maxValue - minValue
+    var nextMin = minValue - spread * 0.12
     return {
-        min: Math.max(0, minValue - spread * 0.12),
+        min: clampMinToZero ? Math.max(0, nextMin) : nextMin,
         max: maxValue + spread * 0.12
     }
 }
