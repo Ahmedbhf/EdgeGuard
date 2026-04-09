@@ -9,6 +9,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     Quick
     SerialPort
     Charts
+    Sql
 )
 
 qt_standard_project_setup(REQUIRES 6.8)
@@ -73,6 +74,7 @@ target_link_libraries(appEdgeGuard
         Qt6::Quick
         Qt6::SerialPort
         Qt6::Charts
+        Qt6::Sql
 )
 
 set_target_properties(appEdgeGuard PROPERTIES

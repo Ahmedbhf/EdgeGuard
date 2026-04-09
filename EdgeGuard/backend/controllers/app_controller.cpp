@@ -1,7 +1,6 @@
 #include "app_controller.h"
 
 #include <QDateTime>
-#include <QTextStream>
 #include <QTime>
 #include <QTimeZone>
 
@@ -168,7 +167,27 @@ void AppController::setMachineType(const QString &machineType)
 
 void AppController::refreshHistoryData()
 {
-    updateHistoryData(parseHistoryCsv(m_storageService.loadLast24h()));
+    m_historyChunkOffset = 0;
+    loadHistoryChunk();
+}
+
+void AppController::loadOlderHistoryChunk()
+{
+    const int totalCount = m_historyData.value(QStringLiteral("totalCount")).toInt();
+    if (m_historyChunkOffset + HistoryChunkSize >= totalCount)
+        return;
+
+    m_historyChunkOffset += HistoryChunkSize;
+    loadHistoryChunk();
+}
+
+void AppController::loadNewerHistoryChunk()
+{
+    if (m_historyChunkOffset <= 0)
+        return;
+
+    m_historyChunkOffset = std::max(0, m_historyChunkOffset - HistoryChunkSize);
+    loadHistoryChunk();
 }
 
 bool AppController::exportHistoryCsv(const QUrl &fileUrl)
@@ -329,83 +348,78 @@ void AppController::storeHistorySample(double anomalyScore, double x, double y, 
     }
 }
 
-AppController::ParsedHistory AppController::parseHistoryCsv(const QString &csvText) const
+void AppController::loadHistoryChunk()
+{
+    const DataStorageService::HistoryChunk chunk = m_storageService.loadLast24hSamples(HistoryChunkSize, m_historyChunkOffset);
+    updateHistoryData(parseHistorySamples(chunk.samples));
+
+    if (m_historyData.isEmpty())
+        return;
+
+    const int loadedCount = chunk.samples.size();
+    const int totalCount = chunk.totalCount;
+    const int newestStart = totalCount > 0 ? std::max(1, totalCount - chunk.offset - loadedCount + 1) : 0;
+    const int newestEnd = totalCount > 0 ? (totalCount - chunk.offset) : 0;
+
+    m_historyData.insert(QStringLiteral("loadedCount"), loadedCount);
+    m_historyData.insert(QStringLiteral("totalCount"), totalCount);
+    m_historyData.insert(QStringLiteral("hasOlder"), chunk.offset + loadedCount < totalCount);
+    m_historyData.insert(QStringLiteral("hasNewer"), chunk.offset > 0);
+    m_historyData.insert(QStringLiteral("chunkStartIndex"), newestStart);
+    m_historyData.insert(QStringLiteral("chunkEndIndex"), newestEnd);
+    m_historyStatusText = totalCount > loadedCount
+                              ? QStringLiteral("Showing samples %1-%2 of %3 from the local 24-hour history database.")
+                                    .arg(newestStart)
+                                    .arg(newestEnd)
+                                    .arg(totalCount)
+                              : QStringLiteral("%1 samples loaded from the local 24-hour history database.")
+                                    .arg(loadedCount);
+    emit historyDataChanged();
+}
+
+AppController::ParsedHistory AppController::parseHistorySamples(const QVector<SensorSample> &samples) const
 {
     ParsedHistory parsedHistory;
-    if (csvText.trimmed().isEmpty()) {
+    if (samples.isEmpty()) {
         parsedHistory.statusText = QStringLiteral("No stored history is available yet.");
-        return parsedHistory;
-    }
-
-    QString mutableCsvText = csvText;
-    QTextStream stream(&mutableCsvText, QIODevice::ReadOnly);
-    const QString headerLine = stream.readLine().trimmed();
-    const QStringList headers = headerLine.split(',');
-    const int timestampIndex = headers.indexOf(QStringLiteral("timestamp"));
-    const int anomalyIndex = headers.indexOf(QStringLiteral("anomaly"));
-    const int xIndex = headers.indexOf(QStringLiteral("x"));
-    const int yIndex = headers.indexOf(QStringLiteral("y"));
-    const int zIndex = headers.indexOf(QStringLiteral("z"));
-    const int tempIndex = headers.indexOf(QStringLiteral("temp"));
-
-    if (timestampIndex < 0 || anomalyIndex < 0 || xIndex < 0 || yIndex < 0 || zIndex < 0 || tempIndex < 0) {
-        parsedHistory.statusText = QStringLiteral("Stored history format is invalid.");
         return parsedHistory;
     }
 
     QVariantList anomalyPoints;
     QVariantList rmsPoints;
     QVariantList tempPoints;
+    QVariantList accelXPoints;
+    QVariantList accelYPoints;
+    QVariantList accelZPoints;
     QVector<double> rmsValues;
     QVector<double> tempValues;
+    QVector<double> accelXValues;
+    QVector<double> accelYValues;
+    QVector<double> accelZValues;
     qint64 firstMs = -1;
     qint64 lastMs = -1;
 
-    while (!stream.atEnd()) {
-        const QString line = stream.readLine().trimmed();
-        if (line.isEmpty())
+    for (const SensorSample &sample : samples) {
+        if (!sample.timestampUtc.isValid())
             continue;
 
-        const QStringList fields = line.split(',');
-        if (fields.size() <= std::max({timestampIndex, anomalyIndex, xIndex, yIndex, zIndex, tempIndex}))
-            continue;
-
-        bool anomalyOk = false;
-        bool xOk = false;
-        bool yOk = false;
-        bool zOk = false;
-        bool tempOk = false;
-
-        QDateTime timestampUtc = QDateTime::fromString(fields.at(timestampIndex).trimmed(), Qt::ISODateWithMs);
-        if (!timestampUtc.isValid())
-            timestampUtc = QDateTime::fromString(fields.at(timestampIndex).trimmed(), Qt::ISODate);
-
-        const double anomaly = fields.at(anomalyIndex).trimmed().toDouble(&anomalyOk);
-        const double x = fields.at(xIndex).trimmed().toDouble(&xOk);
-        const double y = fields.at(yIndex).trimmed().toDouble(&yOk);
-        const double z = fields.at(zIndex).trimmed().toDouble(&zOk);
-        const double temp = fields.at(tempIndex).trimmed().toDouble(&tempOk);
-
-        if (!timestampUtc.isValid() || !anomalyOk || !xOk || !yOk || !zOk || !tempOk)
-            continue;
-
-        const qint64 pointMs = timestampUtc.toUTC().toMSecsSinceEpoch();
-        SensorSample sample;
-        sample.anomalyScore = anomaly;
-        sample.x = x;
-        sample.y = y;
-        sample.z = z;
-        sample.temp = temp;
+        const qint64 pointMs = sample.timestampUtc.toUTC().toMSecsSinceEpoch();
 
         if (firstMs < 0)
             firstMs = pointMs;
         lastMs = pointMs;
 
-        anomalyPoints.append(buildPoint(pointMs, anomaly));
+        anomalyPoints.append(buildPoint(pointMs, sample.anomalyScore));
         rmsPoints.append(buildPoint(pointMs, sample.rms()));
-        tempPoints.append(buildPoint(pointMs, temp));
+        tempPoints.append(buildPoint(pointMs, sample.temp));
+        accelXPoints.append(buildPoint(pointMs, sample.x));
+        accelYPoints.append(buildPoint(pointMs, sample.y));
+        accelZPoints.append(buildPoint(pointMs, sample.z));
         rmsValues.append(sample.rms());
-        tempValues.append(temp);
+        tempValues.append(sample.temp);
+        accelXValues.append(sample.x);
+        accelYValues.append(sample.y);
+        accelZValues.append(sample.z);
     }
 
     if (anomalyPoints.isEmpty()) {
@@ -415,25 +429,36 @@ AppController::ParsedHistory AppController::parseHistoryCsv(const QString &csvTe
 
     const QVariantMap rmsRange = computePaddedRange(rmsValues, true);
     const QVariantMap tempRange = computePaddedRange(tempValues, true);
+    const QVariantMap accelXRange = computePaddedRange(accelXValues, false);
+    const QVariantMap accelYRange = computePaddedRange(accelYValues, false);
+    const QVariantMap accelZRange = computePaddedRange(accelZValues, false);
     const qint64 safeEndMs = lastMs > firstMs ? lastMs : firstMs + 1000;
 
     parsedHistory.data.insert(QStringLiteral("anomalyPoints"), anomalyPoints);
     parsedHistory.data.insert(QStringLiteral("rmsPoints"), rmsPoints);
     parsedHistory.data.insert(QStringLiteral("tempPoints"), tempPoints);
+    parsedHistory.data.insert(QStringLiteral("accelXPoints"), accelXPoints);
+    parsedHistory.data.insert(QStringLiteral("accelYPoints"), accelYPoints);
+    parsedHistory.data.insert(QStringLiteral("accelZPoints"), accelZPoints);
     parsedHistory.data.insert(QStringLiteral("anomalyMinY"), 0.0);
     parsedHistory.data.insert(QStringLiteral("anomalyMaxY"), 100.0);
     parsedHistory.data.insert(QStringLiteral("rmsMinY"), rmsRange.value(QStringLiteral("min")));
     parsedHistory.data.insert(QStringLiteral("rmsMaxY"), rmsRange.value(QStringLiteral("max")));
     parsedHistory.data.insert(QStringLiteral("tempMinY"), tempRange.value(QStringLiteral("min")));
     parsedHistory.data.insert(QStringLiteral("tempMaxY"), tempRange.value(QStringLiteral("max")));
+    parsedHistory.data.insert(QStringLiteral("accelXMinY"), accelXRange.value(QStringLiteral("min")));
+    parsedHistory.data.insert(QStringLiteral("accelXMaxY"), accelXRange.value(QStringLiteral("max")));
+    parsedHistory.data.insert(QStringLiteral("accelYMinY"), accelYRange.value(QStringLiteral("min")));
+    parsedHistory.data.insert(QStringLiteral("accelYMaxY"), accelYRange.value(QStringLiteral("max")));
+    parsedHistory.data.insert(QStringLiteral("accelZMinY"), accelZRange.value(QStringLiteral("min")));
+    parsedHistory.data.insert(QStringLiteral("accelZMaxY"), accelZRange.value(QStringLiteral("max")));
     parsedHistory.data.insert(QStringLiteral("fullStartMs"), firstMs);
     parsedHistory.data.insert(QStringLiteral("fullEndMs"), safeEndMs);
     parsedHistory.data.insert(QStringLiteral("minimumWindowMs"),
                               std::max<qint64>(1000, (safeEndMs - firstMs) / std::min<qint64>(20, anomalyPoints.size())));
     parsedHistory.data.insert(QStringLiteral("sampleCount"), anomalyPoints.size());
-    parsedHistory.statusText =
-        QStringLiteral("%1 samples loaded from the rolling 24-hour store. Hover to inspect points, drag horizontally to scroll, and use the mouse wheel to zoom.")
-            .arg(anomalyPoints.size());
+    parsedHistory.statusText = QStringLiteral("%1 samples loaded from the local 24-hour history database.")
+                                   .arg(anomalyPoints.size());
     return parsedHistory;
 }
 

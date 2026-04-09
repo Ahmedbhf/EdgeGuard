@@ -13,6 +13,8 @@ Rectangle {
 
     readonly property var historyData: appController.historyData
     readonly property bool dataLoaded: historyData.sampleCount !== undefined && historyData.sampleCount > 0
+    readonly property bool hasOlderHistory: historyData.hasOlder === true
+    readonly property bool hasNewerHistory: historyData.hasNewer === true
 
     Component.onCompleted: Qt.callLater(appController.refreshHistoryData)
 
@@ -46,6 +48,18 @@ Rectangle {
             }
 
             ControlButton {
+                text: "Older"
+                enabled: hasOlderHistory
+                onClicked: appController.loadOlderHistoryChunk()
+            }
+
+            ControlButton {
+                text: "Newer"
+                enabled: hasNewerHistory
+                onClicked: appController.loadNewerHistoryChunk()
+            }
+
+            ControlButton {
                 text: "Export CSV"
                 onClicked: exportDialog.open()
             }
@@ -62,16 +76,23 @@ Rectangle {
         HistoryChart {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.verticalStretchFactor: 2
+            Layout.minimumHeight: 420
+            Layout.verticalStretchFactor: 1
             anomalyPoints: historyData.anomalyPoints ? historyData.anomalyPoints : []
             anomalyMinY: historyData.anomalyMinY !== undefined ? historyData.anomalyMinY : 0
             anomalyMaxY: historyData.anomalyMaxY !== undefined ? historyData.anomalyMaxY : 100
-            rmsPoints: historyData.rmsPoints ? historyData.rmsPoints : []
             tempPoints: historyData.tempPoints ? historyData.tempPoints : []
-            rmsMinY: historyData.rmsMinY !== undefined ? historyData.rmsMinY : 0
-            rmsMaxY: historyData.rmsMaxY !== undefined ? historyData.rmsMaxY : 1
             tempMinY: historyData.tempMinY !== undefined ? historyData.tempMinY : 0
             tempMaxY: historyData.tempMaxY !== undefined ? historyData.tempMaxY : 1
+            accelXPoints: historyData.accelXPoints ? historyData.accelXPoints : []
+            accelYPoints: historyData.accelYPoints ? historyData.accelYPoints : []
+            accelZPoints: historyData.accelZPoints ? historyData.accelZPoints : []
+            accelXMinY: historyData.accelXMinY !== undefined ? historyData.accelXMinY : -1
+            accelXMaxY: historyData.accelXMaxY !== undefined ? historyData.accelXMaxY : 1
+            accelYMinY: historyData.accelYMinY !== undefined ? historyData.accelYMinY : -1
+            accelYMaxY: historyData.accelYMaxY !== undefined ? historyData.accelYMaxY : 1
+            accelZMinY: historyData.accelZMinY !== undefined ? historyData.accelZMinY : -1
+            accelZMaxY: historyData.accelZMaxY !== undefined ? historyData.accelZMaxY : 1
             fullStartMs: historyData.fullStartMs !== undefined ? historyData.fullStartMs : 0
             fullEndMs: historyData.fullEndMs !== undefined ? historyData.fullEndMs : 1000
             minimumWindowMs: historyData.minimumWindowMs !== undefined ? historyData.minimumWindowMs : 1000

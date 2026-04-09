@@ -3,24 +3,43 @@
 
 #include "../models/sensor_sample.h"
 
+#include <QSqlDatabase>
 #include <QString>
+#include <QVector>
 
 class DataStorageService
 {
 public:
     DataStorageService();
+    ~DataStorageService();
+
+    struct HistoryChunk {
+        QVector<SensorSample> samples;
+        int totalCount = 0;
+        int offset = 0;
+    };
 
     void appendSample(const SensorSample &sample);
     void cleanOldData();
-    QString loadLast24h() const;
+    HistoryChunk loadLast24hSamples(int limit, int offset) const;
     bool exportCsv(const QString &destinationPath) const;
     QString storagePath() const { return m_storagePath; }
 
 private:
     QString m_storagePath;
+    QString m_fallbackCsvPath;
+    QString m_connectionName;
+    mutable QSqlDatabase m_database;
+    mutable bool m_schemaReady = false;
 
-    void ensureStorageFile() const;
-    QString loadFilteredCsv() const;
+    bool ensureDatabase() const;
+    bool ensureSchema() const;
+    void migrateLegacyCsvIfNeeded() const;
+    HistoryChunk queryLast24hSamples(int limit, int offset) const;
+    void ensureFallbackCsv() const;
+    void appendSampleFallback(const SensorSample &sample) const;
+    HistoryChunk loadFallbackCsvSamples(int limit, int offset) const;
+    void cleanFallbackCsv() const;
 };
 
 #endif

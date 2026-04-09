@@ -74,6 +74,8 @@ public:
     Q_INVOKABLE void resetDeviceIdentity();
     void setMachineType(const QString &machineType);
     Q_INVOKABLE void refreshHistoryData();
+    Q_INVOKABLE void loadOlderHistoryChunk();
+    Q_INVOKABLE void loadNewerHistoryChunk();
     Q_INVOKABLE bool exportHistoryCsv(const QUrl &fileUrl);
 
 signals:
@@ -105,13 +107,14 @@ private:
         QString statusText;
     };
 
+    void loadHistoryChunk();
     void processSample(const SensorSample &sample);
     void syncPorts();
     void syncConnection();
     void updateLiveMetrics();
     void appendLog(const QString &text);
     void storeHistorySample(double anomalyScore, double x, double y, double z, double temp);
-    ParsedHistory parseHistoryCsv(const QString &csvText) const;
+    ParsedHistory parseHistorySamples(const QVector<SensorSample> &samples) const;
     void updateHistoryData(const ParsedHistory &parsedHistory);
     void clearHistoryData(const QString &statusText);
     static void appendValue(QVector<double> &values, double value, int maxHistory);
@@ -138,6 +141,7 @@ private:
     bool m_pendingLiveRefresh = false;
     int m_windowSampleCount = 0;
     int m_storageSamplesSinceCleanup = 0;
+    int m_historyChunkOffset = 0;
     qint64 m_lastStoredSampleMs = 0;
     double m_x = 0.0;
     double m_y = 0.0;
@@ -158,6 +162,7 @@ private:
     static constexpr int StorageIntervalMs = 250;
     static constexpr int StorageCleanupIntervalSamples = 20;
     static constexpr int MaxLogLines = 300;
+    static constexpr int HistoryChunkSize = 1000;
 };
 
 #endif

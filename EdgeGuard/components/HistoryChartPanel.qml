@@ -31,6 +31,8 @@ ChartCard {
     property real axisMinY: 0
     property real axisMaxY: 1
     property bool interactiveEnabled: false
+    property string timeFormat: "HH:mm:ss"
+    property int xTickCount: 6
 
     function clampToAxis(value) {
         return Math.max(axisMinY, Math.min(axisMaxY, value))
@@ -40,6 +42,21 @@ ChartCard {
         var span = Math.max(0.0001, axisMaxY - axisMinY)
         var normalized = (clampToAxis(value) - axisMinY) / span
         return chart.plotArea.y + chart.plotArea.height * (1 - normalized)
+    }
+
+    function applyVisibleRange(startMs, endMs) {
+        return HistoryChartUtils.setVisibleRange(axisX, axisY, points, axisMinY, axisMaxY, startMs, endMs)
+    }
+
+    function constrainCurrentRange() {
+        return HistoryChartUtils.constrainVisibleRange(axisX,
+                                                       axisY,
+                                                       points,
+                                                       axisMinY,
+                                                       axisMaxY,
+                                                       fullStartMs,
+                                                       fullEndMs,
+                                                       minimumWindowMs)
     }
 
     signal visibleRangeChanged(real startMs, real endMs)
@@ -124,8 +141,8 @@ ChartCard {
                 id: axisX
                 min: new Date(root.fullStartMs)
                 max: new Date(root.fullEndMs)
-                format: "HH:mm:ss"
-                tickCount: 6
+                format: root.timeFormat
+                tickCount: root.xTickCount
                 labelsColor: Theme.text
                 gridLineColor: Theme.borderSoft
             }
