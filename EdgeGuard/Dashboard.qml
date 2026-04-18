@@ -23,9 +23,9 @@ Item {
     readonly property color selectedAxisColor: selectedAxis === "X"
                                              ? "#86BBFF"
                                              : (selectedAxis === "Y" ? "#34D399" : "#F59E0B")
-    readonly property color faultTypeColor: appController.faultTypeTone === "fault"
+    readonly property color conditionColor: appController.conditionTone === "fault"
                                           ? Theme.fault
-                                          : (appController.faultTypeTone === "warning" ? Theme.warning : Theme.ok)
+                                          : (appController.conditionTone === "warning" ? Theme.warning : Theme.ok)
 
     function returnToSetup() {
         var stack = StackView.view
@@ -79,8 +79,8 @@ Item {
                 ValueCard {
                     anchors.fill: parent
                     label: "Condition"
-                    value: appController.faultType
-                    valueColor: root.faultTypeColor
+                    value: appController.condition
+                    valueColor: root.conditionColor
                     valueWrapMode: Text.WordWrap
                     sizeVariant: "large"
                 }
@@ -210,8 +210,8 @@ Item {
                             width: parent.width
                             height: 120
                             label: "Condition"
-                            value: appController.faultType
-                            valueColor: root.faultTypeColor
+                            value: appController.condition
+                            valueColor: root.conditionColor
                             valueWrapMode: Text.WordWrap
                             sizeVariant: "large"
                         }

@@ -18,8 +18,8 @@ class AppController : public QObject
     Q_OBJECT
     Q_PROPERTY(double rms READ rms NOTIFY dataChanged)
     Q_PROPERTY(double anomalyScore READ anomalyScore NOTIFY dataChanged)
-    Q_PROPERTY(QString faultType READ faultType NOTIFY dataChanged)
-    Q_PROPERTY(QString faultTypeTone READ faultTypeTone NOTIFY dataChanged)
+    Q_PROPERTY(QString condition READ condition NOTIFY dataChanged)
+    Q_PROPERTY(QString conditionTone READ conditionTone NOTIFY dataChanged)
     Q_PROPERTY(double temp READ temp NOTIFY dataChanged)
     Q_PROPERTY(double ambientTemp READ ambientTemp NOTIFY dataChanged)
     Q_PROPERTY(QVector<double> anomalyValues READ anomalyValues NOTIFY anomalyValuesChanged)
@@ -46,8 +46,8 @@ public:
 
     double rms() const { return m_rms; }
     double anomalyScore() const { return m_anomalyScore; }
-    QString faultType() const { return m_faultType; }
-    QString faultTypeTone() const { return m_faultTypeTone; }
+    QString condition() const { return m_condition; }
+    QString conditionTone() const { return m_conditionTone; }
     double temp() const { return m_temp; }
     double ambientTemp() const { return m_ambientTemp; }
     QVector<double> anomalyValues() const { return m_anomalyValues; }
@@ -117,7 +117,7 @@ private:
     void syncPorts();
     void syncConnection();
     void updateLiveMetrics();
-    void updateFaultType();
+    void updateCondition();
     void appendLog(const QString &text);
     void storeHistorySample(double anomalyScore, double x, double y, double z, double temp);
     ParsedHistory parseHistorySamples(const QVector<SensorSample> &samples) const;
@@ -129,8 +129,7 @@ private:
     void updateHistoryData(const ParsedHistory &parsedHistory);
     void clearHistoryData(const QString &statusText);
     static void appendValue(QVector<double> &values, double value, int maxHistory);
-    static QString conditionForScore(double score);
-    static QString toneForFaultType(const QString &faultType);
+    static QString toneForCondition(const QString &condition);
 
     SerialService m_serialService;
     DataStorageService m_storageService;
@@ -161,8 +160,8 @@ private:
     double m_z = 0.0;
     double m_rms = 0.0;
     double m_anomalyScore = 0.0;
-    QString m_faultType = QStringLiteral("FAULT");
-    QString m_faultTypeTone = QStringLiteral("fault");
+    QString m_condition = QStringLiteral("FAULT");
+    QString m_conditionTone = QStringLiteral("fault");
     double m_temp = 0.0;
     double m_ambientTemp = 0.0;
     double m_windowRmsSquareSum = 0.0;

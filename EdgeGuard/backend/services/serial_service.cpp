@@ -5,6 +5,13 @@ QString labelFor(const QSerialPortInfo &info)
 {
     return info.portName() + QStringLiteral(" (") + info.description() + QStringLiteral(")");
 }
+
+bool readDoubleField(const QStringList &fields, int index, double &value)
+{
+    bool ok = false;
+    value = fields[index].trimmed().toDouble(&ok);
+    return ok;
+}
 }
 
 SerialService::SerialService(QObject *parent) : QObject(parent)
@@ -95,21 +102,14 @@ void SerialService::processLine(const QByteArray &line)
     if (!sample.deviceId.isEmpty())
         emit deviceIdReceived(sample.deviceId);
 
-    bool scoreOk = false;
-    bool xOk = false;
-    bool yOk = false;
-    bool zOk = false;
-    bool tempOk = false;
-    bool ambientOk = false;
-
-    sample.anomalyScore = fields[1].trimmed().toDouble(&scoreOk);
-    sample.x = fields[2].trimmed().toDouble(&xOk);
-    sample.y = fields[3].trimmed().toDouble(&yOk);
-    sample.z = fields[4].trimmed().toDouble(&zOk);
-    sample.temp = fields[5].trimmed().toDouble(&tempOk);
-    sample.ambientTemp = fields[6].trimmed().toDouble(&ambientOk);
-
-    if (!scoreOk || !xOk || !yOk || !zOk || !tempOk || !ambientOk)
+    const bool parsed =
+        readDoubleField(fields, 1, sample.anomalyScore)
+        && readDoubleField(fields, 2, sample.x)
+        && readDoubleField(fields, 3, sample.y)
+        && readDoubleField(fields, 4, sample.z)
+        && readDoubleField(fields, 5, sample.temp)
+        && readDoubleField(fields, 6, sample.ambientTemp);
+    if (!parsed)
         return;
 
     sample.timestampUtc = QDateTime::currentDateTimeUtc();

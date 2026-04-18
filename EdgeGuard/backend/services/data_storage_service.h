@@ -27,19 +27,13 @@ public:
 
 private:
     QString m_storagePath;
-    QString m_fallbackCsvPath;
     QString m_connectionName;
     mutable QSqlDatabase m_database;
     mutable bool m_schemaReady = false;
 
     bool ensureDatabase() const;
     bool ensureSchema() const;
-    void migrateLegacyCsvIfNeeded() const;
     HistoryChunk queryLast24hSamples(int limit, int offset) const;
-    void ensureFallbackCsv() const;
-    void appendSampleFallback(const SensorSample &sample) const;
-    HistoryChunk loadFallbackCsvSamples(int limit, int offset) const;
-    void cleanFallbackCsv() const;
 };
 
 #endif

@@ -66,6 +66,8 @@ qt_add_qml_module(appEdgeGuard
         backend/services/serial_service.cpp
         backend/services/data_storage_service.h
         backend/services/data_storage_service.cpp
+        backend/services/data_storage_service_database.cpp
+        backend/services/data_storage_service_history.cpp
         core/services/signal_processing_service.h
         core/services/signal_processing_service.cpp
         backend/controllers/app_controller.h

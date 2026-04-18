@@ -65,7 +65,7 @@ void AppController::flushLiveData()
         emit yAxisValuesChanged();
         emit zAxisValuesChanged();
 
-        updateFaultType();
+        updateCondition();
         storeHistorySample(aggregatedAnomaly, aggregatedX, aggregatedY, aggregatedZ, aggregatedTemp);
     }
 
@@ -88,15 +88,15 @@ void AppController::updateLiveMetrics()
     m_rms = m_latestSample.rms();
 }
 
-void AppController::updateFaultType()
+void AppController::updateCondition()
 {
-    const QString nextFaultType = conditionForScore(m_anomalyScore);
-    if (m_faultType == nextFaultType)
+    const QString nextCondition = SensorSample::stateForScore(m_anomalyScore);
+    if (m_condition == nextCondition)
         return;
 
-    m_faultType = nextFaultType;
-    m_faultTypeTone = toneForFaultType(m_faultType);
-    appendLog(QStringLiteral("Condition: %1").arg(m_faultType));
+    m_condition = nextCondition;
+    m_conditionTone = toneForCondition(m_condition);
+    appendLog(QStringLiteral("Condition: %1").arg(m_condition));
 }
 
 void AppController::updateLastUpdateText()

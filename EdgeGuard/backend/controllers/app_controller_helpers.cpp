@@ -18,20 +18,11 @@ void AppController::appendValue(QVector<double> &values, double value, int maxHi
         values.removeFirst();
 }
 
-QString AppController::conditionForScore(double score)
+QString AppController::toneForCondition(const QString &condition)
 {
-    if (score >= 80.0)
-        return QStringLiteral("NORMAL");
-    if (score >= 40.0)
-        return QStringLiteral("WARNING");
-    return QStringLiteral("FAULT");
-}
-
-QString AppController::toneForFaultType(const QString &faultType)
-{
-    if (faultType == QStringLiteral("NORMAL"))
+    if (condition == QStringLiteral("NORMAL"))
         return QStringLiteral("ok");
-    if (faultType == QStringLiteral("WARNING"))
+    if (condition == QStringLiteral("WARNING"))
         return QStringLiteral("warning");
     return QStringLiteral("fault");
 }
