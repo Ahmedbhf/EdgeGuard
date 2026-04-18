@@ -121,10 +121,14 @@ private:
     void appendLog(const QString &text);
     void storeHistorySample(double anomalyScore, double x, double y, double z, double temp);
     ParsedHistory parseHistorySamples(const QVector<SensorSample> &samples) const;
+    void appendHistoryFftData(QVariantMap &data,
+                              const QVector<double> &accelXValues,
+                              const QVector<double> &accelYValues,
+                              const QVector<double> &accelZValues,
+                              const QVector<qint64> &timestampsMs) const;
     void updateHistoryData(const ParsedHistory &parsedHistory);
     void clearHistoryData(const QString &statusText);
     static void appendValue(QVector<double> &values, double value, int maxHistory);
-    static QVariantMap buildPoint(qint64 x, double y);
     static QString conditionForScore(double score);
     static QString toneForFaultType(const QString &faultType);
 

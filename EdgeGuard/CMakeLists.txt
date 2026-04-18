@@ -70,6 +70,12 @@ qt_add_qml_module(appEdgeGuard
         core/services/signal_processing_service.cpp
         backend/controllers/app_controller.h
         backend/controllers/app_controller.cpp
+        backend/controllers/app_controller_connection.cpp
+        backend/controllers/app_controller_live.cpp
+        backend/controllers/app_controller_history.cpp
+        backend/controllers/app_controller_history_parser.cpp
+        backend/controllers/app_controller_history_fft.cpp
+        backend/controllers/app_controller_helpers.cpp
 )
 
 target_link_libraries(appEdgeGuard
