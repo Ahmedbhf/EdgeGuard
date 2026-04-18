@@ -33,7 +33,7 @@ Typical use cases:
 The system is composed of two main parts:
 
 - STM32 side:
-  data acquisition, preprocessing, and AI inference
+  data acquisition, preprocessing, and score calculation
 - Qt desktop application:
   monitoring, visualization, and history storage
 
@@ -223,7 +223,7 @@ sample.y = 0.49;
 sample.z = 0.50;
 sample.temp = 42.1;
 sample.ambientTemp = 29.7;
-sample.state = "OK";
+sample.state = "NORMAL";
 ```
 
 ---
@@ -241,22 +241,22 @@ Files:
 
 It:
 
-- stores samples in CSV format
+- stores samples in a local SQLite history database
 - keeps only the last 24 hours
-- exports the current history file
+- exports the current history as CSV when requested
 
 #### Main Functions
 
 ```cpp
 appendSample(const SensorSample &sample)
 cleanOldData()
-loadLast24h()
+loadLast24hSamples(int limit, int offset)
 exportCsv(const QString &destinationPath)
 ```
 
-#### CSV Format
+#### Export CSV Format
 
-Stored format:
+Exported format:
 
 ```text
 timestamp,anomaly,x,y,z,temp
@@ -272,10 +272,10 @@ Example:
 
 The service uses a simple strategy:
 
-1. append new rows
-2. periodically reload the file
+1. insert new rows into the local history table
+2. periodically delete old rows
 3. keep only rows newer than 24 hours
-4. rewrite the filtered file
+4. export filtered rows to CSV when the user asks
 
 This approach is simple and easy to explain.
 
@@ -370,7 +370,7 @@ exportHistoryCsv(const QUrl &fileUrl)
 processSample(const SensorSample &sample)
 flushLiveData()
 storeHistorySample(double anomalyScore, double x, double y, double z, double temp)
-parseHistoryCsv(const QString &csvText)
+parseHistorySamples(const QVector<SensorSample> &samples)
 updateHistoryData(const ParsedHistory &parsedHistory)
 ```
 
@@ -575,14 +575,14 @@ This makes the gauge easy to read instantly.
 
 ### 9.1 Storage Choice
 
-The project uses a CSV file instead of a database.
+The project uses a local SQLite database for rolling history, with CSV export available from the History page.
 
 Why:
 
-- simple to implement
-- easy to inspect manually
-- portable
-- enough for a 24-hour rolling window
+- keeps history queries fast
+- avoids loading the whole history file for every view
+- still allows portable CSV export
+- supports the 24-hour rolling window cleanly
 
 ### 9.2 Strategy
 
@@ -605,15 +605,14 @@ Benefits:
 
 - smaller file size
 - enough detail for charting
-- better for dataset preparation
 
-### 9.4 Why Not a Database
+### 9.4 Why SQLite
 
-A database was intentionally avoided because:
+SQLite is used because:
 
-- project complexity would increase
-- deployment would become heavier
-- CSV is enough for current requirements
+- it is bundled through Qt's SQL support
+- it is reliable for local rolling history
+- it keeps the app independent from external training assets
 
 ---
 
@@ -673,14 +672,14 @@ Reasons:
 - good serial communication support
 - good fit for embedded and industrial workflows
 
-### 11.2 Why CSV
+### 11.2 Why CSV Export
 
 Reasons:
 
 - easy to debug
 - easy to export
 - human-readable
-- no database overhead
+- useful for reports without keeping training data inside the project
 
 ### 11.3 Why MVC-Inspired Architecture
 

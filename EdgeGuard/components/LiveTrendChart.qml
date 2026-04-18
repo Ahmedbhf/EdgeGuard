@@ -30,8 +30,9 @@ Rectangle {
     readonly property color verticalGridColor: isDarkMode ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.06)
     readonly property color axisTextColor: isDarkMode ? "#aeb6c2" : "#7b8794"
     readonly property color latestGlowColor: "transparent"
-    readonly property real effectiveMinY: fixedMaxY > fixedMinY ? fixedMinY : calculatedMinY
-    readonly property real effectiveMaxY: fixedMaxY > effectiveMinY ? fixedMaxY : calculatedMaxY
+    readonly property bool hasFixedRange: fixedMaxY > fixedMinY
+    readonly property real effectiveMinY: hasFixedRange ? fixedMinY : calculatedMinY
+    readonly property real effectiveMaxY: hasFixedRange ? fixedMaxY : calculatedMaxY
     readonly property real totalTimeSec: displayPoints / Math.max(1, sampleRateHz)
     readonly property real secondsPerStep: totalTimeSec / Math.max(1, displayPoints - 1)
     readonly property real currentValue: values && values.length > 0 ? values[values.length - 1] : 0

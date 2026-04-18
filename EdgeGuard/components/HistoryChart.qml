@@ -68,7 +68,7 @@ Item {
             return "Acceleration " + selectedAccelerationAxis + " vs Time"
         if (selectedMetricIndex === 1)
             return "Temperature vs Time"
-            return "Similarity vs Time"
+        return "Score vs Time"
     }
     readonly property string currentValueLabel: {
         if (showingAcceleration)
@@ -91,8 +91,8 @@ Item {
         return selectedMetricIndex === 1 ? "#F59E0B" : Theme.text
     }
     readonly property var currentThresholdBands: selectedMetricIndex === 0 ? [
-        { from: 0, to: 50, color: "#EF4444", opacity: 0.16 },
-        { from: 50, to: 80, color: "#F59E0B", opacity: 0.14 },
+        { from: 0, to: 40, color: "#EF4444", opacity: 0.16 },
+        { from: 40, to: 80, color: "#F59E0B", opacity: 0.14 },
         { from: 80, to: 100, color: "#22C55E", opacity: 0.14 }
     ] : []
     readonly property var currentPoints: {
@@ -227,7 +227,7 @@ Item {
                 }
 
                 AxisSelectorCombo {
-            model: ["Similarity", "Temperature", "Acceleration"]
+                    model: ["Score", "Temperature", "Acceleration"]
                     currentIndex: root.selectedMetricIndex
                     implicitWidth: 156
                     onActivated: function(index) {

@@ -15,7 +15,7 @@ PanelCard {
 
         ValueCard {
             Layout.fillWidth: true
-            label: "Similarity"
+            label: "Score"
             value: appController.anomalyScore.toFixed(2)
             sizeVariant: "large"
         }
@@ -71,15 +71,21 @@ PanelCard {
                 }
 
                 StatusTile {
-                    text: "OK"
-                    active: appController.state === "OK"
+                    text: "NORMAL"
+                    active: appController.state === "NORMAL"
                     activeColor: Theme.ok
                     borderHighlight: 1.2
                 }
 
                 StatusTile {
-                    text: "ANOMALY"
-                    active: appController.state === "ANOMALY"
+                    text: "WARNING"
+                    active: appController.state === "WARNING"
+                    activeColor: Theme.warning
+                }
+
+                StatusTile {
+                    text: "FAULT"
+                    active: appController.state === "FAULT"
                     activeColor: Theme.fault
                 }
             }

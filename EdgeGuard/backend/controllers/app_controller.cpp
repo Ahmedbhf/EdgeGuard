@@ -1,7 +1,6 @@
 #include "app_controller.h"
 
 #include <QDateTime>
-#include <QHash>
 #include <QTime>
 #include <QTimeZone>
 
@@ -344,155 +343,13 @@ void AppController::updateLiveMetrics()
 
 void AppController::updateFaultType()
 {
-    const LiveFaultFeatures features = computeLiveFaultFeatures();
-    const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
-
-    if (m_anomalyScore > 80.0) {
-        setFaultDecision({
-            QStringLiteral("NORMAL"),
-            QStringLiteral("HIGH"),
-            QStringLiteral("NanoEdge similarity indicates normal behavior")
-        });
-        m_faultPredictionHistory.clear();
-        m_pendingFaultType.clear();
-        m_pendingFaultSinceMs = 0;
-        return;
-    }
-
-    if (!features.valid) {
-        setFaultDecision({
-            QStringLiteral("CALIBRATING"),
-            QStringLiteral("LOW"),
-            QStringLiteral("Waiting for enough live vibration data")
-        });
-        return;
-    }
-
-    const FaultDecision rawDecision = classifyFault(features.std,
-                                                    features.peak,
-                                                    features.dominantFreqHz);
-    const FaultDecision smoothedDecision = smoothFaultDecision(rawDecision);
-
-    if (m_faultType == smoothedDecision.type) {
-        setFaultDecision(smoothedDecision);
-        m_pendingFaultType.clear();
-        m_pendingFaultSinceMs = 0;
-        return;
-    }
-
-    if (m_pendingFaultType != smoothedDecision.type) {
-        m_pendingFaultType = smoothedDecision.type;
-        m_pendingFaultSinceMs = nowMs;
-        return;
-    }
-
-    if (nowMs - m_pendingFaultSinceMs < FaultPromotionCooldownMs)
+    const QString nextFaultType = conditionForScore(m_anomalyScore);
+    if (m_faultType == nextFaultType)
         return;
 
-    setFaultDecision(smoothedDecision);
-    appendLog(QStringLiteral("Fault type: %1 (%2)").arg(m_faultType, m_faultConfidence));
-    m_pendingFaultType.clear();
-    m_pendingFaultSinceMs = 0;
-}
-
-AppController::FaultDecision AppController::smoothFaultDecision(const FaultDecision &rawDecision)
-{
-    m_faultPredictionHistory.append(rawDecision);
-    while (m_faultPredictionHistory.size() > FaultStabilizationWindow)
-        m_faultPredictionHistory.remove(0);
-
-    QHash<QString, int> counts;
-    QString majorityType = rawDecision.type;
-    int majorityCount = 0;
-
-    for (const FaultDecision &decision : std::as_const(m_faultPredictionHistory)) {
-        const int count = ++counts[decision.type];
-        if (count > majorityCount || (count == majorityCount && decision.type == rawDecision.type)) {
-            majorityCount = count;
-            majorityType = decision.type;
-        }
-    }
-
-    for (int index = m_faultPredictionHistory.size() - 1; index >= 0; --index) {
-        if (m_faultPredictionHistory[index].type == majorityType)
-            return m_faultPredictionHistory[index];
-    }
-
-    return rawDecision;
-}
-
-void AppController::setFaultDecision(const FaultDecision &decision)
-{
-    m_faultType = decision.type;
-    m_faultConfidence = decision.confidence;
-    m_faultReason = decision.reason;
+    m_faultType = nextFaultType;
     m_faultTypeTone = toneForFaultType(m_faultType);
-}
-
-AppController::LiveFaultFeatures AppController::computeLiveFaultFeatures() const
-{
-    LiveFaultFeatures features;
-
-    int windowSize = std::min({ LiveFaultFftWindowSize,
-                                static_cast<int>(m_xAxisValues.size()),
-                                static_cast<int>(m_yAxisValues.size()),
-                                static_cast<int>(m_zAxisValues.size()) });
-    if (windowSize < 32)
-        return features;
-
-    int powerOfTwo = 1;
-    while ((powerOfTwo << 1) <= windowSize)
-        powerOfTwo <<= 1;
-    windowSize = powerOfTwo;
-
-    const int xStartIndex = m_xAxisValues.size() - windowSize;
-    const int yStartIndex = m_yAxisValues.size() - windowSize;
-    const int zStartIndex = m_zAxisValues.size() - windowSize;
-    const QVector<double> xWindow(m_xAxisValues.begin() + xStartIndex, m_xAxisValues.end());
-    const QVector<double> yWindow(m_yAxisValues.begin() + yStartIndex, m_yAxisValues.end());
-    const QVector<double> zWindow(m_zAxisValues.begin() + zStartIndex, m_zAxisValues.end());
-
-    QVector<double> combinedSignal;
-    combinedSignal.reserve(windowSize);
-    for (int index = 0; index < windowSize; ++index) {
-        const double x = xWindow[index];
-        const double y = yWindow[index];
-        const double z = zWindow[index];
-        combinedSignal.append(std::sqrt(((x * x) + (y * y) + (z * z)) / 3.0));
-    }
-
-    if (combinedSignal.size() < 32)
-        return features;
-
-    double sumSquares = 0.0;
-    double peak = 0.0;
-    double mean = 0.0;
-    for (double value : std::as_const(combinedSignal)) {
-        sumSquares += value * value;
-        peak = std::max(peak, std::abs(value));
-        mean += value;
-    }
-    mean /= combinedSignal.size();
-
-    double variance = 0.0;
-    for (double value : std::as_const(combinedSignal)) {
-        const double delta = value - mean;
-        variance += delta * delta;
-    }
-    variance /= combinedSignal.size();
-
-    constexpr double ClassifierSampleRateHz = 100.0;
-    const SignalProcessingService::FFTResult fftResult =
-        m_signalProcessingService.computeFFT(combinedSignal, ClassifierSampleRateHz);
-    if (fftResult.magnitudes.size() < 2)
-        return features;
-
-    features.rms = static_cast<float>(std::sqrt(sumSquares / combinedSignal.size()));
-    features.peak = static_cast<float>(peak);
-    features.std = static_cast<float>(std::sqrt(variance));
-    features.dominantFreqHz = static_cast<float>(fftResult.dominantFrequency);
-    features.valid = true;
-    return features;
+    appendLog(QStringLiteral("Condition: %1").arg(m_faultType));
 }
 
 void AppController::appendLog(const QString &text)
@@ -704,57 +561,20 @@ QVariantMap AppController::buildPoint(qint64 x, double y)
     };
 }
 
-AppController::FaultDecision AppController::classifyFault(float stdValue,
-                                                          float peak,
-                                                          float dominantFreqHz)
+QString AppController::conditionForScore(double score)
 {
-    FaultDecision decision;
-
-    if (!std::isfinite(stdValue) || !std::isfinite(peak) || !std::isfinite(dominantFreqHz)) {
-        decision.type = QStringLiteral("CALIBRATING");
-        decision.confidence = QStringLiteral("LOW");
-        decision.reason = QStringLiteral("Waiting for reliable vibration features");
-        return decision;
-    }
-
-    if (stdValue > 48.784777f) {
-        decision.type = QStringLiteral("BEARING_FAULT");
-        decision.confidence = stdValue > 60.0f ? QStringLiteral("HIGH") : QStringLiteral("MEDIUM");
-        decision.reason = QStringLiteral("High vibration variability indicates bearing damage");
-        return decision;
-    }
-
-    if (dominantFreqHz <= 20.3125f) {
-        decision.type = QStringLiteral("NORMAL");
-        decision.confidence = QStringLiteral("MEDIUM");
-        decision.reason = QStringLiteral("Dominant vibration frequency remains in the normal range");
-        return decision;
-    }
-
-    if (stdValue <= 42.846477f && peak <= 692.026589f) {
-        decision.type = QStringLiteral("NORMAL");
-        decision.confidence = QStringLiteral("LOW");
-        decision.reason = QStringLiteral("Peak and spread stay close to the learned normal pattern");
-        return decision;
-    }
-
-    decision.type = QStringLiteral("IMBALANCE");
-    decision.confidence = peak > 800.0f ? QStringLiteral("HIGH") : QStringLiteral("MEDIUM");
-    decision.reason = QStringLiteral("Elevated peak vibration with off-normal dominant frequency");
-    return decision;
+    if (score >= 80.0)
+        return QStringLiteral("NORMAL");
+    if (score >= 40.0)
+        return QStringLiteral("WARNING");
+    return QStringLiteral("FAULT");
 }
 
 QString AppController::toneForFaultType(const QString &faultType)
 {
-    if (faultType == QStringLiteral("CALIBRATING"))
-        return QStringLiteral("warning");
     if (faultType == QStringLiteral("NORMAL"))
         return QStringLiteral("ok");
-    if (faultType == QStringLiteral("BEARING_FAULT"))
-        return QStringLiteral("fault");
-    if (faultType == QStringLiteral("IMBALANCE"))
+    if (faultType == QStringLiteral("WARNING"))
         return QStringLiteral("warning");
-    if (faultType == QStringLiteral("COMMUTATOR_FAULT"))
-        return QStringLiteral("warning");
-    return QStringLiteral("ok");
+    return QStringLiteral("fault");
 }

@@ -11,6 +11,7 @@ Page {
     property bool connectionRequested: false
     readonly property string preferredPort: "COM11"
     readonly property string assetsBasePath: "qrc:/qt/qml/EdgeGuard/assets/"
+    readonly property bool deviceReady: appController.deviceConnected || appController.connected
 
     property var machineCards: [
         { label: "DC Motor", value: "DC Motor", image: root.assetsBasePath + "motor.jpg" },
@@ -25,10 +26,8 @@ Page {
         color: Theme.bg
     }
 
-    Component.onCompleted: Qt.callLater(root.continueToDashboard)
-
     function continueToDashboard() {
-        if (!appController.deviceConnected)
+        if (!root.deviceReady)
             return
 
         StackView.view.push("Dashboard.qml")
@@ -79,13 +78,13 @@ Page {
 
                     delegate: Rectangle {
                         required property var modelData
-                        readonly property bool isSelected: appController.deviceConnected && appController.machineType === modelData.value
+                        readonly property bool isSelected: root.deviceReady && appController.machineType === modelData.value
 
                         width: (machineGrid.width - (machineGrid.columns - 1) * machineGrid.spacing) / machineGrid.columns
                         height: 182
                         radius: 18
                         color: Theme.panel
-                        opacity: !appController.deviceConnected ? 0.3 : (isSelected ? 1.0 : 0.2)
+                        opacity: !root.deviceReady ? 0.3 : (isSelected ? 1.0 : 0.2)
                         border.width: isSelected ? 2 : 0
                         border.color: Theme.primary
 
@@ -159,7 +158,7 @@ Page {
                 text: "Continue"
                 width: 200
                 height: 44
-                enabled: appController.deviceConnected
+                enabled: root.deviceReady
                 primary: true
                 onClicked: root.continueToDashboard()
             }

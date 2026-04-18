@@ -25,10 +25,11 @@ function computeRange(values, clampMinToZero) {
     }
 
     var spread = maxValue - minValue
-    var nextMin = minValue - spread * 0.12
+    var padding = Math.max(spread * 0.18, 1)
+    var nextMin = minValue - padding
     return {
         min: clampMinToZero ? Math.max(0, nextMin) : nextMin,
-        max: maxValue + spread * 0.12
+        max: maxValue + padding
     }
 }
 

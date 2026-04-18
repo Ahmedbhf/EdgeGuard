@@ -20,8 +20,6 @@ class AppController : public QObject
     Q_PROPERTY(double anomalyScore READ anomalyScore NOTIFY dataChanged)
     Q_PROPERTY(QString faultType READ faultType NOTIFY dataChanged)
     Q_PROPERTY(QString faultTypeTone READ faultTypeTone NOTIFY dataChanged)
-    Q_PROPERTY(QString faultConfidence READ faultConfidence NOTIFY dataChanged)
-    Q_PROPERTY(QString faultReason READ faultReason NOTIFY dataChanged)
     Q_PROPERTY(double temp READ temp NOTIFY dataChanged)
     Q_PROPERTY(double ambientTemp READ ambientTemp NOTIFY dataChanged)
     Q_PROPERTY(QVector<double> anomalyValues READ anomalyValues NOTIFY anomalyValuesChanged)
@@ -50,8 +48,6 @@ public:
     double anomalyScore() const { return m_anomalyScore; }
     QString faultType() const { return m_faultType; }
     QString faultTypeTone() const { return m_faultTypeTone; }
-    QString faultConfidence() const { return m_faultConfidence; }
-    QString faultReason() const { return m_faultReason; }
     double temp() const { return m_temp; }
     double ambientTemp() const { return m_ambientTemp; }
     QVector<double> anomalyValues() const { return m_anomalyValues; }
@@ -111,20 +107,6 @@ private slots:
     void updateLastUpdateText();
 
 private:
-    struct FaultDecision {
-        QString type = QStringLiteral("CALIBRATING");
-        QString confidence = QStringLiteral("LOW");
-        QString reason = QStringLiteral("Learning baseline vibration band");
-    };
-
-    struct LiveFaultFeatures {
-        float rms = 0.0f;
-        float peak = 0.0f;
-        float std = 0.0f;
-        float dominantFreqHz = 0.0f;
-        bool valid = false;
-    };
-
     struct ParsedHistory {
         QVariantMap data;
         QString statusText;
@@ -136,9 +118,6 @@ private:
     void syncConnection();
     void updateLiveMetrics();
     void updateFaultType();
-    FaultDecision smoothFaultDecision(const FaultDecision &rawDecision);
-    void setFaultDecision(const FaultDecision &decision);
-    LiveFaultFeatures computeLiveFaultFeatures() const;
     void appendLog(const QString &text);
     void storeHistorySample(double anomalyScore, double x, double y, double z, double temp);
     ParsedHistory parseHistorySamples(const QVector<SensorSample> &samples) const;
@@ -146,7 +125,7 @@ private:
     void clearHistoryData(const QString &statusText);
     static void appendValue(QVector<double> &values, double value, int maxHistory);
     static QVariantMap buildPoint(qint64 x, double y);
-    static FaultDecision classifyFault(float stdValue, float peak, float dominantFreqHz);
+    static QString conditionForScore(double score);
     static QString toneForFaultType(const QString &faultType);
 
     SerialService m_serialService;
@@ -155,7 +134,7 @@ private:
     QString m_selectedPort;
     QString m_machineType;
     QString m_deviceId;
-    QString m_state = QStringLiteral("OK");
+    QString m_state = QStringLiteral("NORMAL");
     QString m_historyStatusText = QStringLiteral("Loading the last 24 hours of stored history...");
     QVariantMap m_historyData;
     SensorSample m_latestSample;
@@ -178,10 +157,8 @@ private:
     double m_z = 0.0;
     double m_rms = 0.0;
     double m_anomalyScore = 0.0;
-    QString m_faultType = QStringLiteral("CALIBRATING");
-    QString m_faultTypeTone = QStringLiteral("warning");
-    QString m_faultConfidence = QStringLiteral("LOW");
-    QString m_faultReason = QStringLiteral("Learning baseline vibration band");
+    QString m_faultType = QStringLiteral("FAULT");
+    QString m_faultTypeTone = QStringLiteral("fault");
     double m_temp = 0.0;
     double m_ambientTemp = 0.0;
     double m_windowRmsSquareSum = 0.0;
@@ -190,21 +167,9 @@ private:
     double m_windowXSum = 0.0;
     double m_windowYSum = 0.0;
     double m_windowZSum = 0.0;
-    qint64 m_faultCalibrationStartedMs = 0;
-    qint64 m_pendingFaultSinceMs = 0;
-    float m_baselineBand = 0.0f;
-    float m_baselineBandSum = 0.0f;
-    int m_baselineBandCount = 0;
-    bool m_baselineBandReady = false;
-    QString m_pendingFaultType;
-    QVector<FaultDecision> m_faultPredictionHistory;
 
     static constexpr int MaxHistory = 300;
     static constexpr int LiveAggregationIntervalMs = 50;
-    static constexpr int LiveFaultFftWindowSize = 128;
-    static constexpr int FaultCalibrationDurationMs = 10000;
-    static constexpr int FaultStabilizationWindow = 5;
-    static constexpr int FaultPromotionCooldownMs = 2000;
     static constexpr int StorageIntervalMs = 250;
     static constexpr int StorageCleanupIntervalSamples = 20;
     static constexpr int MaxLogLines = 300;

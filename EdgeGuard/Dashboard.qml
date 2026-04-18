@@ -78,7 +78,7 @@ Item {
 
                 ValueCard {
                     anchors.fill: parent
-                    label: "Fault Type"
+                    label: "Condition"
                     value: appController.faultType
                     valueColor: root.faultTypeColor
                     valueWrapMode: Text.WordWrap
@@ -103,7 +103,7 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.minimumHeight: 0
-                        title: "Similarity vs Time"
+                        title: "Score vs Time"
 
                         LiveTrendChart {
                             anchors.fill: parent
@@ -115,7 +115,7 @@ Item {
                             fixedMinY: 0
                             fixedMaxY: 100
                             lineColor: Theme.primary
-                            anomalyActive: appController.state === "ANOMALY"
+                            anomalyActive: appController.state === "FAULT"
                         }
                     }
 
@@ -142,7 +142,7 @@ Item {
                             sampleRateHz: 20.0
                             lineColor: root.selectedAxisColor
                             clampMinYToZero: false
-                            anomalyActive: appController.state === "ANOMALY"
+                            anomalyActive: appController.state === "FAULT"
                         }
                     }
                 }
@@ -159,7 +159,7 @@ Item {
                         Layout.fillHeight: true
                         Layout.minimumHeight: 0
                         value: appController.anomalyScore
-                        label: "Similarity"
+                        label: "Score"
                         zones: [
                             { from: 0, to: 40, color: "red" },
                             { from: 40, to: 80, color: "yellow" },
@@ -209,7 +209,7 @@ Item {
                         ValueCard {
                             width: parent.width
                             height: 120
-                            label: "Fault Type"
+                            label: "Condition"
                             value: appController.faultType
                             valueColor: root.faultTypeColor
                             valueWrapMode: Text.WordWrap
@@ -221,7 +221,7 @@ Item {
                         width: parent.width
                         height: root.compactGaugeHeight
                         value: appController.anomalyScore
-                        label: "Similarity"
+                        label: "Score"
                         zones: [
                             { from: 0, to: 40, color: "red" },
                             { from: 40, to: 80, color: "yellow" },
@@ -245,7 +245,7 @@ Item {
                     ChartCard {
                         width: parent.width
                         height: root.compactChartHeight
-                        title: "Similarity vs Time"
+                        title: "Score vs Time"
 
                         LiveTrendChart {
                             anchors.fill: parent
@@ -257,7 +257,7 @@ Item {
                             fixedMinY: 0
                             fixedMaxY: 100
                             lineColor: Theme.primary
-                            anomalyActive: appController.state === "ANOMALY"
+                            anomalyActive: appController.state === "FAULT"
                         }
                     }
 
@@ -283,7 +283,7 @@ Item {
                             sampleRateHz: 20.0
                             lineColor: root.selectedAxisColor
                             clampMinYToZero: false
-                            anomalyActive: appController.state === "ANOMALY"
+                            anomalyActive: appController.state === "FAULT"
                         }
                     }
                 }

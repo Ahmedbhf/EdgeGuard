@@ -26,7 +26,11 @@ struct SensorSample
 
     static QString stateForScore(double anomalyScore)
     {
-        return anomalyScore >= 80.0 ? QStringLiteral("OK") : QStringLiteral("ANOMALY");
+        if (anomalyScore >= 80.0)
+            return QStringLiteral("NORMAL");
+        if (anomalyScore >= 40.0)
+            return QStringLiteral("WARNING");
+        return QStringLiteral("FAULT");
     }
 };
 
