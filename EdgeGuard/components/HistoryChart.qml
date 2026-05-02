@@ -159,7 +159,15 @@ Item {
 
     function scrubTo(position) {
         if (maxStartOffsetMs <= 0) {
-            showLatestWindow()
+            if (fullSpanMs <= minimumWindowMs) {
+                showLatestWindow()
+                return
+            }
+
+            var fallbackSpan = Math.max(minimumWindowMs, Math.min(selectedWindowMs, fullSpanMs * 0.25))
+            var fallbackOffset = Math.max(0, fullSpanMs - fallbackSpan)
+            var fallbackStartMs = fullStartMs + (Math.max(0, Math.min(1, position)) * fallbackOffset)
+            applyViewport(fallbackStartMs, fallbackStartMs + fallbackSpan)
             return
         }
 
@@ -320,7 +328,7 @@ Item {
                     from: 0
                     to: 1
                     value: root.navigatorPosition
-                    enabled: root.maxStartOffsetMs > 0
+                    enabled: root.maxStartOffsetMs > 0 || root.fullSpanMs > root.minimumWindowMs
 
                     background: Rectangle {
                         x: timelineSlider.leftPadding

@@ -17,6 +17,7 @@ qt_standard_project_setup(REQUIRES 6.8)
 qt_add_executable(appEdgeGuard
     main.cpp
     assets/assets.qrc
+    app_icon.rc
 )
 
 set_source_files_properties(theme/Theme.qml
@@ -59,6 +60,7 @@ qt_add_qml_module(appEdgeGuard
         assets/compresor.jpeg
         assets/grid.jpeg
         assets/other.jpeg
+        icon.png
 
     SOURCES
         backend/models/sensor_sample.h

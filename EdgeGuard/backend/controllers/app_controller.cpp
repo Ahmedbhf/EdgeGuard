@@ -28,6 +28,9 @@ AppController::AppController(QObject *parent) : QObject(parent)
     connect(&m_lastUpdateTimer, &QTimer::timeout, this, &AppController::updateLastUpdateText);
     m_lastUpdateTimer.start();
 
+    m_relearnCooldownTimer.setInterval(1000);
+    connect(&m_relearnCooldownTimer, &QTimer::timeout, this, &AppController::tickRelearnCooldown);
+
     m_lastStoredSampleMs = QDateTime::currentMSecsSinceEpoch();
     refreshPorts();
     refreshHistoryData();

@@ -9,6 +9,7 @@ Rectangle {
     readonly property bool stacked: width < 980
 
     signal connectionToggled()
+    signal relearnClicked()
     signal historyClicked()
     signal themeToggleClicked()
 
@@ -58,6 +59,14 @@ Rectangle {
                 text: appController.connected ? "Disconnect" : "Connect"
                 primary: appController.connected
                 onClicked: root.connectionToggled()
+            }
+
+            ControlButton {
+                text: appController.relearnCooldownSeconds > 0
+                      ? "Relearn " + appController.relearnCooldownSeconds + "s"
+                      : "Relearn"
+                enabled: appController.relearnAvailable
+                onClicked: root.relearnClicked()
             }
 
             ControlButton {
@@ -113,6 +122,14 @@ Rectangle {
                 text: appController.connected ? "Disconnect" : "Connect"
                 primary: appController.connected
                 onClicked: root.connectionToggled()
+            }
+
+            ControlButton {
+                text: appController.relearnCooldownSeconds > 0
+                      ? "Relearn " + appController.relearnCooldownSeconds + "s"
+                      : "Relearn"
+                enabled: appController.relearnAvailable
+                onClicked: root.relearnClicked()
             }
 
             ControlButton {

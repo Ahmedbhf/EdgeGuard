@@ -30,7 +30,21 @@ struct SensorSample
             return QStringLiteral("NORMAL");
         if (anomalyScore >= 40.0)
             return QStringLiteral("WARNING");
-        return QStringLiteral("FAULT");
+        return QStringLiteral("CRITICAL");
+    }
+
+    static QString stateForCode(int stateCode)
+    {
+        switch (stateCode) {
+        case 0:
+            return QStringLiteral("NORMAL");
+        case 1:
+            return QStringLiteral("WARNING");
+        case 2:
+            return QStringLiteral("CRITICAL");
+        default:
+            return QString();
+        }
     }
 };
 

@@ -6,5 +6,6 @@
         <file>compresor.jpeg</file>
         <file>grid.jpeg</file>
         <file>other.jpeg</file>
+        <file alias="icon.png">../icon.png</file>
     </qresource>
 </RCC>

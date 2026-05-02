@@ -111,4 +111,42 @@ void AppController::syncConnection()
     }
 
     emit connectedChanged();
+    emit relearnAvailabilityChanged();
+}
+
+void AppController::requestRelearn()
+{
+    if (!connected()) {
+        appendLog(QStringLiteral("Connect a serial device before relearning."));
+        return;
+    }
+
+    if (m_relearnCooldownSeconds > 0) {
+        appendLog(QStringLiteral("Relearn is cooling down for %1 s.").arg(m_relearnCooldownSeconds));
+        return;
+    }
+
+    if (!m_serialService.writeData(QByteArrayLiteral("r")))
+        return;
+
+    m_relearnCooldownSeconds = RelearnCooldownSeconds;
+    m_relearnCooldownTimer.start();
+    appendLog(QStringLiteral("Sent relearn command."));
+    emit relearnCooldownChanged();
+    emit relearnAvailabilityChanged();
+}
+
+void AppController::tickRelearnCooldown()
+{
+    if (m_relearnCooldownSeconds <= 0) {
+        m_relearnCooldownTimer.stop();
+        return;
+    }
+
+    --m_relearnCooldownSeconds;
+    if (m_relearnCooldownSeconds <= 0)
+        m_relearnCooldownTimer.stop();
+
+    emit relearnCooldownChanged();
+    emit relearnAvailabilityChanged();
 }

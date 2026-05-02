@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QCoreApplication>
+#include <QIcon>
 #include <QLibraryInfo>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -8,6 +9,7 @@ int main(int argc, char *argv[])
 {
     qputenv("QT_QUICK_CONTROLS_STYLE", "Basic");
     QApplication app(argc, argv);
+    app.setWindowIcon(QIcon(QStringLiteral(":/assets/icon.png")));
     QCoreApplication::addLibraryPath(QLibraryInfo::path(QLibraryInfo::PluginsPath));
     QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath());
 

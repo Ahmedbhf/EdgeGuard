@@ -28,6 +28,7 @@ public:
     void refreshPorts();
     bool connectToPort(const QString &portName);
     void disconnectPort();
+    bool writeData(const QByteArray &data);
 
 signals:
     void portsChanged();

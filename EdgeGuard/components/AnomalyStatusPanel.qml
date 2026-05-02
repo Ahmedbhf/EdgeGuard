@@ -84,8 +84,8 @@ PanelCard {
                 }
 
                 StatusTile {
-                    text: "FAULT"
-                    active: appController.state === "FAULT"
+                    text: "CRITICAL"
+                    active: appController.state === "CRITICAL"
                     activeColor: Theme.fault
                 }
             }

@@ -45,7 +45,7 @@ PanelCard {
                     displayPoints: 120
                     sampleRateHz: 20.0
                     lineColor: "#86BBFF"
-                    anomalyActive: appController.state === "FAULT"
+                    anomalyActive: appController.state === "CRITICAL"
                 }
             }
         }
@@ -81,7 +81,7 @@ PanelCard {
                     displayPoints: 120
                     sampleRateHz: 20.0
                     lineColor: "#F6AD55"
-                    anomalyActive: appController.state === "FAULT"
+                    anomalyActive: appController.state === "CRITICAL"
                 }
             }
         }

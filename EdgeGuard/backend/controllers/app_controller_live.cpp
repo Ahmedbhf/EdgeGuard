@@ -90,7 +90,9 @@ void AppController::updateLiveMetrics()
 
 void AppController::updateCondition()
 {
-    const QString nextCondition = SensorSample::stateForScore(m_anomalyScore);
+    const QString nextCondition = m_latestSample.state.isEmpty()
+                                      ? SensorSample::stateForScore(m_anomalyScore)
+                                      : m_latestSample.state;
     if (m_condition == nextCondition)
         return;
 

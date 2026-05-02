@@ -51,6 +51,7 @@ Item {
                 else
                     root.returnToSetup()
             }
+            onRelearnClicked: appController.requestRelearn()
             onHistoryClicked: root.showingHistoryPage = true
             onThemeToggleClicked: Theme.toggleMode()
         }
@@ -115,7 +116,7 @@ Item {
                             fixedMinY: 0
                             fixedMaxY: 100
                             lineColor: Theme.primary
-                            anomalyActive: appController.state === "FAULT"
+                            anomalyActive: appController.state === "CRITICAL"
                         }
                     }
 
@@ -142,7 +143,7 @@ Item {
                             sampleRateHz: 20.0
                             lineColor: root.selectedAxisColor
                             clampMinYToZero: false
-                            anomalyActive: appController.state === "FAULT"
+                            anomalyActive: appController.state === "CRITICAL"
                         }
                     }
                 }
@@ -257,7 +258,7 @@ Item {
                             fixedMinY: 0
                             fixedMaxY: 100
                             lineColor: Theme.primary
-                            anomalyActive: appController.state === "FAULT"
+                            anomalyActive: appController.state === "CRITICAL"
                         }
                     }
 
@@ -283,7 +284,7 @@ Item {
                             sampleRateHz: 20.0
                             lineColor: root.selectedAxisColor
                             clampMinYToZero: false
-                            anomalyActive: appController.state === "FAULT"
+                            anomalyActive: appController.state === "CRITICAL"
                         }
                     }
                 }

@@ -12,6 +12,13 @@ bool readDoubleField(const QStringList &fields, int index, double &value)
     value = fields[index].trimmed().toDouble(&ok);
     return ok;
 }
+
+bool readIntField(const QStringList &fields, int index, int &value)
+{
+    bool ok = false;
+    value = fields[index].trimmed().toInt(&ok);
+    return ok;
+}
 }
 
 SerialService::SerialService(QObject *parent) : QObject(parent)
@@ -57,7 +64,7 @@ bool SerialService::connectToPort(const QString &portName)
     m_port.setStopBits(QSerialPort::OneStop);
     m_port.setFlowControl(QSerialPort::NoFlowControl);
 
-    if (!m_port.open(QIODevice::ReadOnly))
+    if (!m_port.open(QIODevice::ReadWrite))
         return emit errorOccurred(m_port.errorString()), false;
 
     m_buffer.clear();
@@ -73,6 +80,23 @@ void SerialService::disconnectPort()
         m_port.close();
     if (wasOpen)
         emit connectedChanged();
+}
+
+bool SerialService::writeData(const QByteArray &data)
+{
+    if (!connected())
+        return emit errorOccurred(QStringLiteral("Serial device is not connected.")), false;
+    if (data.isEmpty())
+        return false;
+
+    const qint64 bytesWritten = m_port.write(data);
+    if (bytesWritten != data.size()) {
+        emit errorOccurred(QStringLiteral("Could not write the full UART command."));
+        return false;
+    }
+
+    m_port.flush();
+    return true;
 }
 
 void SerialService::onReadyRead()
@@ -94,7 +118,7 @@ void SerialService::processLine(const QByteArray &line)
         return;
 
     const QStringList fields = textLine.split(',');
-    if (fields.size() != 7)
+    if (fields.size() != 7 && fields.size() != 8)
         return;
 
     SensorSample sample;
@@ -112,7 +136,18 @@ void SerialService::processLine(const QByteArray &line)
     if (!parsed)
         return;
 
+    if (fields.size() == 8) {
+        int stateCode = -1;
+        if (!readIntField(fields, 7, stateCode))
+            return;
+
+        sample.state = SensorSample::stateForCode(stateCode);
+        if (sample.state.isEmpty())
+            return;
+    } else {
+        sample.state = SensorSample::stateForScore(sample.anomalyScore);
+    }
+
     sample.timestampUtc = QDateTime::currentDateTimeUtc();
-    sample.state = SensorSample::stateForScore(sample.anomalyScore);
     emit sampleReceived(sample);
 }

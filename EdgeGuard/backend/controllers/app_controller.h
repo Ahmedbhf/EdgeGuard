@@ -40,6 +40,8 @@ class AppController : public QObject
     Q_PROPERTY(QString lastUpdateText READ lastUpdateText NOTIFY lastUpdateTextChanged)
     Q_PROPERTY(QString historyStatusText READ historyStatusText NOTIFY historyDataChanged)
     Q_PROPERTY(QVariantMap historyData READ historyData NOTIFY historyDataChanged)
+    Q_PROPERTY(bool relearnAvailable READ relearnAvailable NOTIFY relearnAvailabilityChanged)
+    Q_PROPERTY(int relearnCooldownSeconds READ relearnCooldownSeconds NOTIFY relearnCooldownChanged)
 
 public:
     explicit AppController(QObject *parent = nullptr);
@@ -68,6 +70,8 @@ public:
     QString lastUpdateText() const;
     QString historyStatusText() const { return m_historyStatusText; }
     QVariantMap historyData() const { return m_historyData; }
+    bool relearnAvailable() const { return connected() && m_relearnCooldownSeconds <= 0; }
+    int relearnCooldownSeconds() const { return m_relearnCooldownSeconds; }
 
     Q_INVOKABLE void connectToPort(const QString &portName);
     Q_INVOKABLE void connectPreferredPort(const QString &preferredPort);
@@ -82,6 +86,7 @@ public:
     Q_INVOKABLE void loadOlderHistoryChunk();
     Q_INVOKABLE void loadNewerHistoryChunk();
     Q_INVOKABLE bool exportHistoryCsv(const QUrl &fileUrl);
+    Q_INVOKABLE void requestRelearn();
 
 signals:
     void dataChanged();
@@ -100,11 +105,14 @@ signals:
     void logTextChanged();
     void lastUpdateTextChanged();
     void historyDataChanged();
+    void relearnAvailabilityChanged();
+    void relearnCooldownChanged();
 
 private slots:
     void onSampleReceived(const SensorSample &sample);
     void flushLiveData();
     void updateLastUpdateText();
+    void tickRelearnCooldown();
 
 private:
     struct ParsedHistory {
@@ -150,6 +158,7 @@ private:
     QStringList m_logs;
     QTimer m_liveDataTimer;
     QTimer m_lastUpdateTimer;
+    QTimer m_relearnCooldownTimer;
     bool m_pendingLiveRefresh = false;
     int m_windowSampleCount = 0;
     int m_storageSamplesSinceCleanup = 0;
@@ -160,7 +169,7 @@ private:
     double m_z = 0.0;
     double m_rms = 0.0;
     double m_anomalyScore = 0.0;
-    QString m_condition = QStringLiteral("FAULT");
+    QString m_condition = QStringLiteral("CRITICAL");
     QString m_conditionTone = QStringLiteral("fault");
     double m_temp = 0.0;
     double m_ambientTemp = 0.0;
@@ -170,6 +179,7 @@ private:
     double m_windowXSum = 0.0;
     double m_windowYSum = 0.0;
     double m_windowZSum = 0.0;
+    int m_relearnCooldownSeconds = 0;
 
     static constexpr int MaxHistory = 300;
     static constexpr int LiveAggregationIntervalMs = 50;
@@ -177,6 +187,7 @@ private:
     static constexpr int StorageCleanupIntervalSamples = 20;
     static constexpr int MaxLogLines = 300;
     static constexpr int HistoryChunkSize = 1000;
+    static constexpr int RelearnCooldownSeconds = 5;
 };
 
 #endif
