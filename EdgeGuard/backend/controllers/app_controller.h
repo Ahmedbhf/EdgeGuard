@@ -16,14 +16,12 @@
 class AppController : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(double rms READ rms NOTIFY dataChanged)
     Q_PROPERTY(double anomalyScore READ anomalyScore NOTIFY dataChanged)
     Q_PROPERTY(QString condition READ condition NOTIFY dataChanged)
     Q_PROPERTY(QString conditionTone READ conditionTone NOTIFY dataChanged)
     Q_PROPERTY(double temp READ temp NOTIFY dataChanged)
     Q_PROPERTY(double ambientTemp READ ambientTemp NOTIFY dataChanged)
     Q_PROPERTY(QVector<double> anomalyValues READ anomalyValues NOTIFY anomalyValuesChanged)
-    Q_PROPERTY(QVector<double> vibrationValues READ vibrationValues NOTIFY vibrationValuesChanged)
     Q_PROPERTY(QVector<double> temperatureValues READ temperatureValues NOTIFY temperatureValuesChanged)
     Q_PROPERTY(QVector<double> xAxisValues READ xAxisValues NOTIFY xAxisValuesChanged)
     Q_PROPERTY(QVector<double> yAxisValues READ yAxisValues NOTIFY yAxisValuesChanged)
@@ -46,14 +44,12 @@ class AppController : public QObject
 public:
     explicit AppController(QObject *parent = nullptr);
 
-    double rms() const { return m_rms; }
     double anomalyScore() const { return m_anomalyScore; }
     QString condition() const { return m_condition; }
     QString conditionTone() const { return m_conditionTone; }
     double temp() const { return m_temp; }
     double ambientTemp() const { return m_ambientTemp; }
     QVector<double> anomalyValues() const { return m_anomalyValues; }
-    QVector<double> vibrationValues() const { return m_vibrationValues; }
     QVector<double> temperatureValues() const { return m_temperatureValues; }
     QVector<double> xAxisValues() const { return m_xAxisValues; }
     QVector<double> yAxisValues() const { return m_yAxisValues; }
@@ -91,7 +87,6 @@ public:
 signals:
     void dataChanged();
     void anomalyValuesChanged();
-    void vibrationValuesChanged();
     void temperatureValuesChanged();
     void xAxisValuesChanged();
     void yAxisValuesChanged();
@@ -124,7 +119,6 @@ private:
     void processSample(const SensorSample &sample);
     void syncPorts();
     void syncConnection();
-    void updateLiveMetrics();
     void updateCondition();
     void appendLog(const QString &text);
     void storeHistorySample(double anomalyScore, double x, double y, double z, double temp);
@@ -150,7 +144,6 @@ private:
     QVariantMap m_historyData;
     SensorSample m_latestSample;
     QVector<double> m_anomalyValues;
-    QVector<double> m_vibrationValues;
     QVector<double> m_temperatureValues;
     QVector<double> m_xAxisValues;
     QVector<double> m_yAxisValues;
@@ -167,13 +160,11 @@ private:
     double m_x = 0.0;
     double m_y = 0.0;
     double m_z = 0.0;
-    double m_rms = 0.0;
     double m_anomalyScore = 0.0;
     QString m_condition = QStringLiteral("CRITICAL");
     QString m_conditionTone = QStringLiteral("fault");
     double m_temp = 0.0;
     double m_ambientTemp = 0.0;
-    double m_windowRmsSquareSum = 0.0;
     double m_windowTempSum = 0.0;
     double m_windowAnomalySum = 0.0;
     double m_windowXSum = 0.0;

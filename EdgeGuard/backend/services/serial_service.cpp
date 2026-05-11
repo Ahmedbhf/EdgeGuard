@@ -19,6 +19,19 @@ bool readIntField(const QStringList &fields, int index, int &value)
     value = fields[index].trimmed().toInt(&ok);
     return ok;
 }
+
+bool readStateField(const QStringList &fields, int index, int &value)
+{
+    QString stateText = fields[index].trimmed();
+    const QString prefix = QStringLiteral("etat:");
+
+    if (stateText.startsWith(prefix, Qt::CaseInsensitive))
+        stateText = stateText.mid(prefix.size()).trimmed();
+
+    bool ok = false;
+    value = stateText.toInt(&ok);
+    return ok;
+}
 }
 
 SerialService::SerialService(QObject *parent) : QObject(parent)
@@ -138,7 +151,7 @@ void SerialService::processLine(const QByteArray &line)
 
     if (fields.size() == 8) {
         int stateCode = -1;
-        if (!readIntField(fields, 7, stateCode))
+        if (!readStateField(fields, 7, stateCode))
             return;
 
         sample.state = SensorSample::stateForCode(stateCode);

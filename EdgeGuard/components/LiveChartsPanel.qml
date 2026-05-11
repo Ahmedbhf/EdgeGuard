@@ -29,22 +29,22 @@ PanelCard {
                 spacing: 12
 
                 Label {
-                    text: "RMS Vibration (mg)"
+                    text: "Anomaly Score"
                     color: Theme.lightMode ? "#4b5563" : "#d2d7df"
                     font.weight: Font.Bold
                 }
 
                 LiveTrendChart {
-                    id: rmsChart
-                    // This chart uses the rolling vibration history prepared by the backend.
+                    id: anomalyChart
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    values: appController.vibrationValues
-                    unit: "mg"
+                    values: appController.anomalyValues
                     showUnitLabel: false
                     displayPoints: 120
                     sampleRateHz: 20.0
-                    lineColor: "#86BBFF"
+                    fixedMinY: 0
+                    fixedMaxY: 100
+                    lineColor: Theme.primary
                     anomalyActive: appController.state === "CRITICAL"
                 }
             }

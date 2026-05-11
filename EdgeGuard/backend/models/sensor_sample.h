@@ -4,8 +4,6 @@
 #include <QDateTime>
 #include <QString>
 
-#include <cmath>
-
 struct SensorSample
 {
     QString deviceId;
@@ -17,12 +15,6 @@ struct SensorSample
     double temp = 0.0;
     double ambientTemp = 0.0;
     QString state;
-
-    double rms() const
-    {
-        const double energy = ((x * x) + (y * y) + (z * z)) / 3.0;
-        return std::sqrt(energy);
-    }
 
     static QString stateForScore(double anomalyScore)
     {

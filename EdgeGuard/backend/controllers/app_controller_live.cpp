@@ -1,7 +1,5 @@
 #include "app_controller.h"
 
-#include <cmath>
-
 // Live sample path: raw UART samples become current values, chart buffers, and score condition.
 void AppController::onSampleReceived(const SensorSample &sample)
 {
@@ -19,9 +17,7 @@ void AppController::processSample(const SensorSample &sample)
     m_z = sample.z;
     m_temp = sample.temp;
     m_ambientTemp = sample.ambientTemp;
-    updateLiveMetrics();
 
-    m_windowRmsSquareSum += (m_rms * m_rms);
     m_windowTempSum += m_temp;
     m_windowAnomalySum += m_anomalyScore;
     m_windowXSum += m_x;
@@ -44,7 +40,6 @@ void AppController::flushLiveData()
         return;
 
     if (m_windowSampleCount > 0) {
-        const double aggregatedRms = std::sqrt(m_windowRmsSquareSum / m_windowSampleCount);
         const double aggregatedTemp = m_windowTempSum / m_windowSampleCount;
         const double aggregatedAnomaly = m_windowAnomalySum / m_windowSampleCount;
         const double aggregatedX = m_windowXSum / m_windowSampleCount;
@@ -52,14 +47,12 @@ void AppController::flushLiveData()
         const double aggregatedZ = m_windowZSum / m_windowSampleCount;
 
         appendValue(m_anomalyValues, aggregatedAnomaly, MaxHistory);
-        appendValue(m_vibrationValues, aggregatedRms, MaxHistory);
         appendValue(m_temperatureValues, aggregatedTemp, MaxHistory);
         appendValue(m_xAxisValues, aggregatedX, MaxHistory);
         appendValue(m_yAxisValues, aggregatedY, MaxHistory);
         appendValue(m_zAxisValues, aggregatedZ, MaxHistory);
 
         emit anomalyValuesChanged();
-        emit vibrationValuesChanged();
         emit temperatureValuesChanged();
         emit xAxisValuesChanged();
         emit yAxisValuesChanged();
@@ -70,7 +63,6 @@ void AppController::flushLiveData()
     }
 
     m_windowSampleCount = 0;
-    m_windowRmsSquareSum = 0.0;
     m_windowTempSum = 0.0;
     m_windowAnomalySum = 0.0;
     m_windowXSum = 0.0;
@@ -81,11 +73,6 @@ void AppController::flushLiveData()
         emit dataChanged();
 
     m_pendingLiveRefresh = false;
-}
-
-void AppController::updateLiveMetrics()
-{
-    m_rms = m_latestSample.rms();
 }
 
 void AppController::updateCondition()

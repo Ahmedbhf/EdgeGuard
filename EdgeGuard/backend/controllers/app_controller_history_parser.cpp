@@ -6,12 +6,10 @@
 namespace {
 struct HistorySeries {
     QVariantList scorePoints;
-    QVariantList rmsPoints;
     QVariantList tempPoints;
     QVariantList accelXPoints;
     QVariantList accelYPoints;
     QVariantList accelZPoints;
-    QVector<double> rmsValues;
     QVector<double> tempValues;
     QVector<double> accelXValues;
     QVector<double> accelYValues;
@@ -71,15 +69,12 @@ void appendSample(HistorySeries &series, const SensorSample &sample)
         series.firstMs = pointMs;
     series.lastMs = pointMs;
 
-    const double rms = sample.rms();
     series.scorePoints.append(chartPoint(pointMs, sample.anomalyScore));
-    series.rmsPoints.append(chartPoint(pointMs, rms));
     series.tempPoints.append(chartPoint(pointMs, sample.temp));
     series.accelXPoints.append(chartPoint(pointMs, sample.x));
     series.accelYPoints.append(chartPoint(pointMs, sample.y));
     series.accelZPoints.append(chartPoint(pointMs, sample.z));
 
-    series.rmsValues.append(rms);
     series.tempValues.append(sample.temp);
     series.accelXValues.append(sample.x);
     series.accelYValues.append(sample.y);
@@ -92,14 +87,12 @@ void appendChartData(QVariantMap &data, const HistorySeries &series)
     const qint64 safeEndMs = series.lastMs > series.firstMs ? series.lastMs : series.firstMs + 1000;
 
     data.insert(QStringLiteral("anomalyPoints"), series.scorePoints);
-    data.insert(QStringLiteral("rmsPoints"), series.rmsPoints);
     data.insert(QStringLiteral("tempPoints"), series.tempPoints);
     data.insert(QStringLiteral("accelXPoints"), series.accelXPoints);
     data.insert(QStringLiteral("accelYPoints"), series.accelYPoints);
     data.insert(QStringLiteral("accelZPoints"), series.accelZPoints);
     data.insert(QStringLiteral("anomalyMinY"), 0.0);
     data.insert(QStringLiteral("anomalyMaxY"), 100.0);
-    appendRange(data, QStringLiteral("rms"), computePaddedRange(series.rmsValues, true));
     appendRange(data, QStringLiteral("temp"), computePaddedRange(series.tempValues, true));
     appendRange(data, QStringLiteral("accelX"), computePaddedRange(series.accelXValues, false));
     appendRange(data, QStringLiteral("accelY"), computePaddedRange(series.accelYValues, false));

@@ -20,8 +20,8 @@ PanelCard {
             Layout.fillHeight: true
             Layout.minimumHeight: 0
             Layout.verticalStretchFactor: 1
-            label: "RMS (mg)"
-            value: appController.rms.toFixed(2)
+            label: "Anomaly Score"
+            value: appController.anomalyScore.toFixed(1)
             sizeVariant: "hero"
         }
         ValueCard {

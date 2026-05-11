@@ -1,10 +1,31 @@
 #include "app_controller.h"
 
 #include <QDateTime>
+#include <QSaveFile>
+#include <QTextStream>
 #include <QTimeZone>
 
-#include <algorithm>
 #include <limits>
+
+namespace {
+QString formatNumber(double value, int precision)
+{
+    return QString::number(value, 'f', precision);
+}
+
+QString csvCell(QString value)
+{
+    value.replace('"', QStringLiteral("\"\""));
+    if (value.contains(',') || value.contains('"') || value.contains('\n') || value.contains('\r'))
+        return QStringLiteral("\"%1\"").arg(value);
+    return value;
+}
+
+void writeCsvRow(QTextStream &stream, const QStringList &columns)
+{
+    stream << columns.join(',') << '\n';
+}
+}
 
 // History storage/navigation: load chunks, export CSV, and store downsampled live samples.
 void AppController::refreshHistoryData()
@@ -35,9 +56,52 @@ void AppController::loadNewerHistoryChunk()
 bool AppController::exportHistoryCsv(const QUrl &fileUrl)
 {
     const QString path = fileUrl.isLocalFile() ? fileUrl.toLocalFile() : fileUrl.toString();
-    const bool ok = m_storageService.exportCsv(path);
+    const QString targetPath = path.trimmed();
+    if (targetPath.isEmpty()) {
+        appendLog(QStringLiteral("Could not export the 24h history CSV."));
+        return false;
+    }
+
+    const DataStorageService::HistoryChunk chunk = m_storageService.loadLast24hSamples(std::numeric_limits<int>::max(), 0);
+    if (chunk.samples.isEmpty()) {
+        appendLog(QStringLiteral("Could not export the 24h history CSV."));
+        return false;
+    }
+
+    QSaveFile file(targetPath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        appendLog(QStringLiteral("Could not export the 24h history CSV."));
+        return false;
+    }
+
+    QTextStream stream(&file);
+    writeCsvRow(stream, {
+                            QStringLiteral("timestamp_utc"),
+                            QStringLiteral("timestamp_ms"),
+                            QStringLiteral("anomaly_score"),
+                            QStringLiteral("condition"),
+                            QStringLiteral("x"),
+                            QStringLiteral("y"),
+                            QStringLiteral("z"),
+                            QStringLiteral("temp_c")
+                        });
+
+    for (const SensorSample &sample : chunk.samples) {
+        writeCsvRow(stream, {
+                                csvCell(sample.timestampUtc.toUTC().toString(Qt::ISODateWithMs)),
+                                QString::number(sample.timestampUtc.toUTC().toMSecsSinceEpoch()),
+                                formatNumber(sample.anomalyScore, 3),
+                                csvCell(SensorSample::stateForScore(sample.anomalyScore)),
+                                formatNumber(sample.x, 4),
+                                formatNumber(sample.y, 4),
+                                formatNumber(sample.z, 4),
+                                formatNumber(sample.temp, 2)
+                            });
+    }
+
+    const bool ok = file.commit();
     appendLog(ok
-                  ? QStringLiteral("Exported 24h history to %1").arg(path)
+                  ? QStringLiteral("Exported 24h dataset to %1").arg(path)
                   : QStringLiteral("Could not export the 24h history CSV."));
     return ok;
 }
