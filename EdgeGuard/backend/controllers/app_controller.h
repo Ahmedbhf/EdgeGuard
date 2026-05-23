@@ -34,6 +34,8 @@ class AppController : public QObject
     Q_PROPERTY(QString machineType READ machineType WRITE setMachineType NOTIFY machineTypeChanged)
     Q_PROPERTY(QString deviceId READ deviceId NOTIFY deviceIdChanged)
     Q_PROPERTY(QString state READ state NOTIFY stateChanged)
+    Q_PROPERTY(QString stateSummary READ stateSummary NOTIFY stateChanged)
+    Q_PROPERTY(QString operatingCondition READ operatingCondition NOTIFY stateChanged)
     Q_PROPERTY(QString logText READ logText NOTIFY logTextChanged)
     Q_PROPERTY(QString lastUpdateText READ lastUpdateText NOTIFY lastUpdateTextChanged)
     Q_PROPERTY(QString historyStatusText READ historyStatusText NOTIFY historyDataChanged)
@@ -44,36 +46,65 @@ class AppController : public QObject
 public:
     explicit AppController(QObject *parent = nullptr);
 
+    // Returns the latest anomaly score shown on the dashboard.
     double anomalyScore() const { return m_anomalyScore; }
+    // Returns the current health condition label for the machine.
     QString condition() const { return m_condition; }
+    // Returns the UI tone token that matches the current condition.
     QString conditionTone() const { return m_conditionTone; }
+    // Returns the latest measured machine temperature.
     double temp() const { return m_temp; }
+    // Returns the latest measured ambient temperature.
     double ambientTemp() const { return m_ambientTemp; }
+    // Returns the rolling anomaly chart values.
     QVector<double> anomalyValues() const { return m_anomalyValues; }
+    // Returns the rolling temperature chart values.
     QVector<double> temperatureValues() const { return m_temperatureValues; }
+    // Returns the rolling X-axis acceleration values.
     QVector<double> xAxisValues() const { return m_xAxisValues; }
+    // Returns the rolling Y-axis acceleration values.
     QVector<double> yAxisValues() const { return m_yAxisValues; }
+    // Returns the rolling Z-axis acceleration values.
     QVector<double> zAxisValues() const { return m_zAxisValues; }
+    // Reports whether the serial service currently owns an open port.
     bool connected() const { return m_serialService.connected(); }
+    // Reports whether the connected hardware has sent a device identifier.
     bool deviceConnected() const { return !m_deviceId.isEmpty(); }
+    // Returns display labels for the ports detected by the serial service.
     QStringList availablePorts() const { return m_serialService.portDisplayNames(); }
+    // Returns the active port while connected, otherwise the user's selected port.
     QString currentPort() const { return connected() ? m_serialService.currentPort() : m_selectedPort; }
+    // Returns the port currently selected in the setup UI.
     QString selectedPort() const { return m_selectedPort; }
+    // Returns the machine type selected or inferred for this session.
     QString machineType() const { return m_machineType; }
+    // Returns the latest device identifier reported by the hardware.
     QString deviceId() const { return m_deviceId; }
+    // Returns the current machine state label from the device or score fallback.
     QString state() const { return m_state; }
+    // Combines state and operating condition for compact UI display.
+    QString stateSummary() const { return QStringLiteral("%1 · %2").arg(m_state, m_operatingCondition); }
+    // Returns the current operating condition or detected fault class.
+    QString operatingCondition() const { return m_operatingCondition; }
+    // Returns the UI log buffer as newline-separated text.
     QString logText() const { return m_logs.join('\n'); }
     QString lastUpdateText() const;
+    // Returns the status line for the currently loaded history chunk.
     QString historyStatusText() const { return m_historyStatusText; }
+    // Returns chart-ready history data consumed by the History page.
     QVariantMap historyData() const { return m_historyData; }
+    // Reports whether the relearn command can be sent right now.
     bool relearnAvailable() const { return connected() && m_relearnCooldownSeconds <= 0; }
+    // Returns the remaining seconds before another relearn command is allowed.
     int relearnCooldownSeconds() const { return m_relearnCooldownSeconds; }
 
     Q_INVOKABLE void connectToPort(const QString &portName);
     Q_INVOKABLE void connectPreferredPort(const QString &preferredPort);
     Q_INVOKABLE void disconnectPort();
     Q_INVOKABLE void disconnectAndReset();
+    // Refreshes the serial port list exposed to QML.
     Q_INVOKABLE void refreshPorts() { m_serialService.refreshPorts(); }
+    // Returns the raw system port name for a visible port row.
     Q_INVOKABLE QString portNameAt(int index) const { return m_serialService.portNameAt(index); }
     Q_INVOKABLE void setSelectedPort(const QString &portName);
     Q_INVOKABLE void resetDeviceIdentity();
@@ -140,6 +171,7 @@ private:
     QString m_machineType;
     QString m_deviceId;
     QString m_state = QStringLiteral("NORMAL");
+    QString m_operatingCondition = QStringLiteral("Motor On");
     QString m_historyStatusText = QStringLiteral("Loading the last 24 hours of stored history...");
     QVariantMap m_historyData;
     SensorSample m_latestSample;

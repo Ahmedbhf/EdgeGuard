@@ -8,9 +8,10 @@ void AppController::onSampleReceived(const SensorSample &sample)
 
 void AppController::processSample(const SensorSample &sample)
 {
-    const bool stateUpdated = sample.state != m_state;
+    const bool stateUpdated = sample.state != m_state || sample.operatingCondition != m_operatingCondition;
     m_latestSample = sample;
     m_state = sample.state;
+    m_operatingCondition = sample.operatingCondition;
     m_anomalyScore = sample.anomalyScore;
     m_x = sample.x;
     m_y = sample.y;
@@ -30,7 +31,7 @@ void AppController::processSample(const SensorSample &sample)
 
     if (stateUpdated) {
         emit stateChanged();
-        appendLog(QStringLiteral("State: %1").arg(m_state));
+        appendLog(QStringLiteral("State: %1, Operating Condition: %2").arg(m_state, m_operatingCondition));
     }
 }
 

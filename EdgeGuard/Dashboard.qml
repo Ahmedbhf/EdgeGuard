@@ -77,13 +77,29 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 120
 
-                ValueCard {
+                RowLayout {
                     anchors.fill: parent
-                    label: "State"
-                    value: appController.state
-                    valueColor: root.stateColor
-                    valueWrapMode: Text.WordWrap
-                    sizeVariant: "large"
+                    spacing: Theme.spaceLg
+
+                    ValueCard {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        label: "State"
+                        value: appController.state
+                        valueColor: root.stateColor
+                        valueWrapMode: Text.WordWrap
+                        sizeVariant: "large"
+                    }
+
+                    ValueCard {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        label: "Operating Condition"
+                        value: appController.operatingCondition
+                        valueColor: root.stateColor
+                        valueWrapMode: Text.WordWrap
+                        sizeVariant: "large"
+                    }
                 }
             }
 
@@ -208,10 +224,20 @@ Item {
                         spacing: Theme.spaceMd
 
                         ValueCard {
-                            width: parent.width
+                            width: (parent.width - parent.spacing) / 2
                             height: 120
                             label: "State"
                             value: appController.state
+                            valueColor: root.stateColor
+                            valueWrapMode: Text.WordWrap
+                            sizeVariant: "large"
+                        }
+
+                        ValueCard {
+                            width: (parent.width - parent.spacing) / 2
+                            height: 120
+                            label: "Operating Condition"
+                            value: appController.operatingCondition
                             valueColor: root.stateColor
                             valueWrapMode: Text.WordWrap
                             sizeVariant: "large"

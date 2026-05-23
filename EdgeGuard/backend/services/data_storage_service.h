@@ -23,6 +23,7 @@ public:
     void cleanOldData();
     HistoryChunk loadLast24hSamples(int limit, int offset) const;
     bool exportCsv(const QString &destinationPath) const;
+    // Returns the SQLite file path used for the rolling history database.
     QString storagePath() const { return m_storagePath; }
 
 private:

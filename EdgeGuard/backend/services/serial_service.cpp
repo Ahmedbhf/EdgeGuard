@@ -131,7 +131,7 @@ void SerialService::processLine(const QByteArray &line)
         return;
 
     const QStringList fields = textLine.split(',');
-    if (fields.size() != 7 && fields.size() != 8)
+    if (fields.size() != 7 && fields.size() != 8 && fields.size() != 9)
         return;
 
     SensorSample sample;
@@ -149,7 +149,7 @@ void SerialService::processLine(const QByteArray &line)
     if (!parsed)
         return;
 
-    if (fields.size() == 8) {
+    if (fields.size() >= 8) {
         int stateCode = -1;
         if (!readStateField(fields, 7, stateCode))
             return;
@@ -159,6 +159,20 @@ void SerialService::processLine(const QByteArray &line)
             return;
     } else {
         sample.state = SensorSample::stateForScore(sample.anomalyScore);
+    }
+
+    if (fields.size() >= 9) {
+        int classCode = -1;
+        if (!readIntField(fields, 8, classCode))
+            return;
+
+        sample.operatingCondition = SensorSample::operatingConditionForCode(classCode, sample.state);
+        if (sample.operatingCondition.isEmpty())
+            return;
+    } else {
+        sample.operatingCondition = sample.state == QStringLiteral("NORMAL")
+                                        ? QStringLiteral("Motor On")
+                                        : QStringLiteral("Monitoring");
     }
 
     sample.timestampUtc = QDateTime::currentDateTimeUtc();

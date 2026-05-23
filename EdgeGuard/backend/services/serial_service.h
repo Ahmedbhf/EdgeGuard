@@ -20,7 +20,9 @@ class SerialService : public QObject
 public:
     explicit SerialService(QObject *parent = nullptr);
 
+    // Reports whether the UART port is currently open.
     bool connected() const { return m_port.isOpen(); }
+    // Returns the system name of the currently configured UART port.
     QString currentPort() const { return m_port.portName(); }
     QStringList portDisplayNames() const;
     QString portNameAt(int index) const;
