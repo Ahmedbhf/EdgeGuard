@@ -5,6 +5,21 @@ project(EdgeGuard VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(FetchContent)
+
+set(KISSFFT_DATATYPE "double" CACHE STRING "KissFFT scalar type" FORCE)
+set(KISSFFT_STATIC ON CACHE BOOL "Build KissFFT as a static library" FORCE)
+set(KISSFFT_TEST OFF CACHE BOOL "Disable KissFFT tests" FORCE)
+set(KISSFFT_TOOLS OFF CACHE BOOL "Disable KissFFT command-line tools" FORCE)
+set(KISSFFT_PKGCONFIG OFF CACHE BOOL "Disable KissFFT pkg-config generation" FORCE)
+
+FetchContent_Declare(
+    kissfft
+    GIT_REPOSITORY https://github.com/mborgerding/kissfft.git
+    GIT_TAG 131.2.0
+)
+FetchContent_MakeAvailable(kissfft)
+
 find_package(Qt6 REQUIRED COMPONENTS
     Quick
     SerialPort
@@ -88,6 +103,7 @@ target_link_libraries(appEdgeGuard
         Qt6::SerialPort
         Qt6::Charts
         Qt6::Sql
+        kissfft::kissfft
 )
 
 get_filename_component(QT_INSTALL_PREFIX "${Qt6_DIR}/../../.." ABSOLUTE)

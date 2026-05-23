@@ -1,8 +1,11 @@
 #include "app_controller.h"
 
+#include <algorithm>
+
 // FFT data is optional history metadata used by the lower spectrum chart on the History page.
 namespace {
-constexpr int HistoryFftWindowSize = 256;
+constexpr int HistoryFftMaxWindowSize = 256;
+constexpr int HistoryFftMinWindowSize = 8;
 
 // Converts numeric vectors into QVariantLists that QML can consume directly.
 QVariantList toVariantList(const QVector<double> &values)
@@ -35,14 +38,21 @@ void AppController::appendHistoryFftData(QVariantMap &data,
                                          const QVector<double> &accelZValues,
                                          const QVector<qint64> &timestampsMs) const
 {
-    if (accelXValues.size() < HistoryFftWindowSize)
+    const int availableSampleCount = std::min({
+        accelXValues.size(),
+        accelYValues.size(),
+        accelZValues.size(),
+        timestampsMs.size()
+    });
+    if (availableSampleCount < HistoryFftMinWindowSize)
         return;
 
-    const int startIndex = accelXValues.size() - HistoryFftWindowSize;
-    const QVector<double> fftXWindow(accelXValues.begin() + startIndex, accelXValues.end());
-    const QVector<double> fftYWindow(accelYValues.begin() + startIndex, accelYValues.end());
-    const QVector<double> fftZWindow(accelZValues.begin() + startIndex, accelZValues.end());
-    const QVector<qint64> fftTimeWindow(timestampsMs.begin() + startIndex, timestampsMs.end());
+    const int windowSize = std::min(availableSampleCount, HistoryFftMaxWindowSize);
+    const int startIndex = availableSampleCount - windowSize;
+    const QVector<double> fftXWindow(accelXValues.begin() + startIndex, accelXValues.begin() + availableSampleCount);
+    const QVector<double> fftYWindow(accelYValues.begin() + startIndex, accelYValues.begin() + availableSampleCount);
+    const QVector<double> fftZWindow(accelZValues.begin() + startIndex, accelZValues.begin() + availableSampleCount);
+    const QVector<qint64> fftTimeWindow(timestampsMs.begin() + startIndex, timestampsMs.begin() + availableSampleCount);
     const double sampleRateHz = estimateSampleRateHz(fftTimeWindow);
     if (sampleRateHz <= 0.0)
         return;
@@ -62,4 +72,6 @@ void AppController::appendHistoryFftData(QVariantMap &data,
     data.insert(QStringLiteral("fftYEnergy"), yResult.energy);
     data.insert(QStringLiteral("fftZEnergy"), zResult.energy);
     data.insert(QStringLiteral("fftMaxFrequency"), sampleRateHz / 2.0);
+    data.insert(QStringLiteral("fftSampleCount"), windowSize);
+    data.insert(QStringLiteral("fftSampleRateHz"), sampleRateHz);
 }

@@ -14,15 +14,6 @@ public:
     };
 
     FFTResult computeFFT(const QVector<double> &samples, double sampleRateHz) const;
-
-private:
-    struct ComplexValue {
-        double real = 0.0;
-        double imag = 0.0;
-    };
-
-    static bool isPowerOfTwo(int value);
-    static int reverseBits(int value, int bitCount);
 };
 
 #endif
