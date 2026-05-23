@@ -1,6 +1,7 @@
 #include "app_controller.h"
 
 // Serial-port and setup identity logic: everything needed to enter/leave the device session.
+// Normalizes a UI port label, selects it, and opens the serial connection.
 void AppController::connectToPort(const QString &portName)
 {
     const QString port = portName.split(' ').first().trimmed();
@@ -14,6 +15,7 @@ void AppController::connectToPort(const QString &portName)
         appendLog(QStringLiteral("Connected to %1").arg(port));
 }
 
+// Chooses the preferred, selected, or first available port before connecting.
 void AppController::connectPreferredPort(const QString &preferredPort)
 {
     refreshPorts();
@@ -36,18 +38,21 @@ void AppController::connectPreferredPort(const QString &preferredPort)
     connectToPort(targetPort);
 }
 
+// Closes the active serial connection if one is open.
 void AppController::disconnectPort()
 {
     if (connected())
         m_serialService.disconnectPort();
 }
 
+// Disconnects from hardware and clears identity fields tied to that session.
 void AppController::disconnectAndReset()
 {
     disconnectPort();
     resetDeviceIdentity();
 }
 
+// Stores the setup page's selected port and notifies QML when it changes.
 void AppController::setSelectedPort(const QString &portName)
 {
     const QString port = portName.trimmed();
@@ -58,6 +63,7 @@ void AppController::setSelectedPort(const QString &portName)
     emit selectedPortChanged();
 }
 
+// Clears the remembered device id and machine type after a manual reset.
 void AppController::resetDeviceIdentity()
 {
     bool deviceChanged = false;
@@ -75,6 +81,7 @@ void AppController::resetDeviceIdentity()
         emit deviceIdChanged();
 }
 
+// Updates the selected or inferred machine type used by setup/status UI.
 void AppController::setMachineType(const QString &machineType)
 {
     const QString trimmedMachineType = machineType.trimmed();
@@ -85,6 +92,7 @@ void AppController::setMachineType(const QString &machineType)
     emit machineTypeChanged();
 }
 
+// Mirrors serial-service port changes into controller state and QML signals.
 void AppController::syncPorts()
 {
     emit availablePortsChanged();
@@ -103,6 +111,7 @@ void AppController::syncPorts()
     }
 }
 
+// Reacts to connection state changes and refreshes dependent UI properties.
 void AppController::syncConnection()
 {
     if (!connected()) {
@@ -114,6 +123,7 @@ void AppController::syncConnection()
     emit relearnAvailabilityChanged();
 }
 
+// Sends the relearn UART command when connected and outside the cooldown.
 void AppController::requestRelearn()
 {
     if (!connected()) {
@@ -136,6 +146,7 @@ void AppController::requestRelearn()
     emit relearnAvailabilityChanged();
 }
 
+// Counts down the relearn lockout timer and re-enables the command at zero.
 void AppController::tickRelearnCooldown()
 {
     if (m_relearnCooldownSeconds <= 0) {

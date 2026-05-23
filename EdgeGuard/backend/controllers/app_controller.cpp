@@ -37,6 +37,7 @@ AppController::AppController(QObject *parent) : QObject(parent)
     appendLog(QStringLiteral("Ready."));
 }
 
+// Builds the "Just now" / "N s ago" text used beside live sensor data.
 QString AppController::lastUpdateText() const
 {
     if (!m_latestSample.timestampUtc.isValid())

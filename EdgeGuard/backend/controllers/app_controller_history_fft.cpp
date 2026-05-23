@@ -4,6 +4,7 @@
 namespace {
 constexpr int HistoryFftWindowSize = 256;
 
+// Converts numeric vectors into QVariantLists that QML can consume directly.
 QVariantList toVariantList(const QVector<double> &values)
 {
     QVariantList list;
@@ -13,6 +14,7 @@ QVariantList toVariantList(const QVector<double> &values)
     return list;
 }
 
+// Estimates sample frequency from the first and last timestamps in a window.
 double estimateSampleRateHz(const QVector<qint64> &timestampsMs)
 {
     if (timestampsMs.size() < 2)
@@ -26,6 +28,7 @@ double estimateSampleRateHz(const QVector<qint64> &timestampsMs)
 }
 }
 
+// Computes the latest acceleration FFT window and appends spectrum metadata.
 void AppController::appendHistoryFftData(QVariantMap &data,
                                          const QVector<double> &accelXValues,
                                          const QVector<double> &accelYValues,

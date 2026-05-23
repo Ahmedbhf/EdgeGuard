@@ -18,6 +18,7 @@ constexpr qint64 RollingWindowMs = 24LL * 60LL * 60LL * 1000LL;
 const char *HeaderLine = "timestamp,anomaly,x,y,z,temp\n";
 }
 
+// Inserts one timestamped sensor sample into the rolling history table.
 void DataStorageService::appendSample(const SensorSample &sample)
 {
     if (!ensureDatabase())
@@ -37,6 +38,7 @@ void DataStorageService::appendSample(const SensorSample &sample)
         qWarning() << "Could not insert history sample into SQLite:" << query.lastError().text();
 }
 
+// Deletes samples older than the configured 24-hour rolling window.
 void DataStorageService::cleanOldData()
 {
     if (!ensureDatabase())
@@ -49,11 +51,13 @@ void DataStorageService::cleanOldData()
         qWarning() << "Could not clean old SQLite history rows:" << query.lastError().text();
 }
 
+// Loads a paged slice of samples from the last 24 hours.
 DataStorageService::HistoryChunk DataStorageService::loadLast24hSamples(int limit, int offset) const
 {
     return queryLast24hSamples(limit, offset);
 }
 
+// Writes every available 24-hour sample to a simple CSV export file.
 bool DataStorageService::exportCsv(const QString &destinationPath) const
 {
     const QString targetPath = destinationPath.trimmed();
@@ -90,6 +94,7 @@ bool DataStorageService::exportCsv(const QString &destinationPath) const
     return file.commit();
 }
 
+// Queries newest rows first, then restores chronological order for charting.
 DataStorageService::HistoryChunk DataStorageService::queryLast24hSamples(int limit, int offset) const
 {
     HistoryChunk chunk;

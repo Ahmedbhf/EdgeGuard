@@ -19,6 +19,7 @@ struct HistorySeries {
     qint64 lastMs = -1;
 };
 
+// Builds a QML chart point map from a timestamp and numeric value.
 QVariantMap chartPoint(qint64 x, double y)
 {
     return {
@@ -27,6 +28,7 @@ QVariantMap chartPoint(qint64 x, double y)
     };
 }
 
+// Computes a padded min/max axis range, optionally preventing negative lows.
 QVariantMap computePaddedRange(const QVector<double> &values, bool clampMinToZero)
 {
     if (values.isEmpty())
@@ -56,12 +58,14 @@ QVariantMap computePaddedRange(const QVector<double> &values, bool clampMinToZer
     };
 }
 
+// Stores an axis range in the history map using a chart-specific prefix.
 void appendRange(QVariantMap &data, const QString &prefix, const QVariantMap &range)
 {
     data.insert(prefix + QStringLiteral("MinY"), range.value(QStringLiteral("min")));
     data.insert(prefix + QStringLiteral("MaxY"), range.value(QStringLiteral("max")));
 }
 
+// Adds one stored sample to both chart-point lists and numeric value arrays.
 void appendSample(HistorySeries &series, const SensorSample &sample)
 {
     const qint64 pointMs = sample.timestampUtc.toUTC().toMSecsSinceEpoch();
@@ -82,6 +86,7 @@ void appendSample(HistorySeries &series, const SensorSample &sample)
     series.accelTimestampsMs.append(pointMs);
 }
 
+// Writes all chart series, ranges, and zoom-window metadata into QML data.
 void appendChartData(QVariantMap &data, const HistorySeries &series)
 {
     const qint64 safeEndMs = series.lastMs > series.firstMs ? series.lastMs : series.firstMs + 1000;
@@ -105,6 +110,7 @@ void appendChartData(QVariantMap &data, const HistorySeries &series)
 }
 }
 
+// Converts stored samples into chart-ready history data and optional FFT input.
 AppController::ParsedHistory AppController::parseHistorySamples(const QVector<SensorSample> &samples) const
 {
     ParsedHistory parsedHistory;

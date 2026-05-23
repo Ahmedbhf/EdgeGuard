@@ -1,11 +1,13 @@
 #include "serial_service.h"
 
 namespace {
+// Builds the visible label used in the setup port picker.
 QString labelFor(const QSerialPortInfo &info)
 {
     return info.portName() + QStringLiteral(" (") + info.description() + QStringLiteral(")");
 }
 
+// Parses a floating-point field from a comma-separated UART frame.
 bool readDoubleField(const QStringList &fields, int index, double &value)
 {
     bool ok = false;
@@ -13,6 +15,7 @@ bool readDoubleField(const QStringList &fields, int index, double &value)
     return ok;
 }
 
+// Parses an integer field from a comma-separated UART frame.
 bool readIntField(const QStringList &fields, int index, int &value)
 {
     bool ok = false;
@@ -20,6 +23,7 @@ bool readIntField(const QStringList &fields, int index, int &value)
     return ok;
 }
 
+// Parses the state field, accepting both raw numbers and "etat:" prefixes.
 bool readStateField(const QStringList &fields, int index, int &value)
 {
     QString stateText = fields[index].trimmed();
@@ -34,12 +38,14 @@ bool readStateField(const QStringList &fields, int index, int &value)
 }
 }
 
+// Registers SensorSample and wires serial ready-read events to the parser.
 SerialService::SerialService(QObject *parent) : QObject(parent)
 {
     qRegisterMetaType<SensorSample>("SensorSample");
     connect(&m_port, &QSerialPort::readyRead, this, &SerialService::onReadyRead);
 }
 
+// Returns user-facing labels for each detected serial port.
 QStringList SerialService::portDisplayNames() const
 {
     QStringList names;
@@ -48,11 +54,13 @@ QStringList SerialService::portDisplayNames() const
     return names;
 }
 
+// Returns the raw port name behind a visible port list index.
 QString SerialService::portNameAt(int index) const
 {
     return index >= 0 && index < m_ports.size() ? m_ports.at(index).name : QString();
 }
 
+// Re-scans available serial ports and notifies QML of the new list.
 void SerialService::refreshPorts()
 {
     m_ports.clear();
@@ -61,6 +69,7 @@ void SerialService::refreshPorts()
     emit portsChanged();
 }
 
+// Configures and opens a UART connection to the requested port.
 bool SerialService::connectToPort(const QString &portName)
 {
     const QString trimmedPortName = portName.trimmed();
@@ -85,6 +94,7 @@ bool SerialService::connectToPort(const QString &portName)
     return true;
 }
 
+// Closes the UART port and clears any partially received frame.
 void SerialService::disconnectPort()
 {
     const bool wasOpen = connected();
@@ -95,6 +105,7 @@ void SerialService::disconnectPort()
         emit connectedChanged();
 }
 
+// Sends a command to the connected device and reports write failures.
 bool SerialService::writeData(const QByteArray &data)
 {
     if (!connected())
@@ -112,6 +123,7 @@ bool SerialService::writeData(const QByteArray &data)
     return true;
 }
 
+// Buffers incoming bytes and dispatches complete newline-terminated frames.
 void SerialService::onReadyRead()
 {
     m_buffer.append(m_port.readAll());
@@ -124,6 +136,7 @@ void SerialService::onReadyRead()
     }
 }
 
+// Parses one UART CSV frame into a SensorSample and emits it to the app.
 void SerialService::processLine(const QByteArray &line)
 {
     const QString textLine = QString::fromUtf8(line).trimmed();

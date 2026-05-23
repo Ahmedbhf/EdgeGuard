@@ -6,6 +6,7 @@
 #include <QSqlError>
 #include <QSqlQuery>
 
+// Opens the SQLite connection on demand and guarantees the schema exists.
 bool DataStorageService::ensureDatabase() const
 {
     QFileInfo fileInfo(m_storagePath);
@@ -29,6 +30,7 @@ bool DataStorageService::ensureDatabase() const
     return ensureSchema();
 }
 
+// Creates the history table and timestamp index once per service instance.
 bool DataStorageService::ensureSchema() const
 {
     if (m_schemaReady)

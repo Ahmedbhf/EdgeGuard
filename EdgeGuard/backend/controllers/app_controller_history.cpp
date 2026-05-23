@@ -8,11 +8,13 @@
 #include <limits>
 
 namespace {
+// Formats a number with fixed decimal precision for CSV output.
 QString formatNumber(double value, int precision)
 {
     return QString::number(value, 'f', precision);
 }
 
+// Escapes one CSV cell, quoting it only when the value needs protection.
 QString csvCell(QString value)
 {
     value.replace('"', QStringLiteral("\"\""));
@@ -21,6 +23,7 @@ QString csvCell(QString value)
     return value;
 }
 
+// Writes one comma-separated row to the export stream.
 void writeCsvRow(QTextStream &stream, const QStringList &columns)
 {
     stream << columns.join(',') << '\n';
@@ -28,12 +31,14 @@ void writeCsvRow(QTextStream &stream, const QStringList &columns)
 }
 
 // History storage/navigation: load chunks, export CSV, and store downsampled live samples.
+// Resets paging to the newest history chunk and reloads chart data.
 void AppController::refreshHistoryData()
 {
     m_historyChunkOffset = 0;
     loadHistoryChunk();
 }
 
+// Moves the history view one chunk older if older samples are available.
 void AppController::loadOlderHistoryChunk()
 {
     const int totalCount = m_historyData.value(QStringLiteral("totalCount")).toInt();
@@ -44,6 +49,7 @@ void AppController::loadOlderHistoryChunk()
     loadHistoryChunk();
 }
 
+// Moves the history view one chunk newer if the user is not at the latest data.
 void AppController::loadNewerHistoryChunk()
 {
     if (m_historyChunkOffset <= 0)
@@ -53,6 +59,7 @@ void AppController::loadNewerHistoryChunk()
     loadHistoryChunk();
 }
 
+// Exports all locally stored 24-hour history samples to a CSV file.
 bool AppController::exportHistoryCsv(const QUrl &fileUrl)
 {
     const QString path = fileUrl.isLocalFile() ? fileUrl.toLocalFile() : fileUrl.toString();
@@ -106,6 +113,7 @@ bool AppController::exportHistoryCsv(const QUrl &fileUrl)
     return ok;
 }
 
+// Downsamples live aggregated values into the rolling SQLite history store.
 void AppController::storeHistorySample(double anomalyScore, double x, double y, double z, double temp)
 {
     const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
@@ -129,6 +137,7 @@ void AppController::storeHistorySample(double anomalyScore, double x, double y, 
     }
 }
 
+// Loads one paged history slice and attaches pagination metadata for QML.
 void AppController::loadHistoryChunk()
 {
     const DataStorageService::HistoryChunk chunk = m_storageService.loadLast24hSamples(HistoryChunkSize, m_historyChunkOffset);
@@ -158,6 +167,7 @@ void AppController::loadHistoryChunk()
     emit historyDataChanged();
 }
 
+// Applies parsed chart data or clears history when parsing found no samples.
 void AppController::updateHistoryData(const ParsedHistory &parsedHistory)
 {
     if (parsedHistory.data.isEmpty()) {
@@ -170,6 +180,7 @@ void AppController::updateHistoryData(const ParsedHistory &parsedHistory)
     emit historyDataChanged();
 }
 
+// Clears history charts and publishes a status message explaining why.
 void AppController::clearHistoryData(const QString &statusText)
 {
     m_historyData.clear();

@@ -1,11 +1,13 @@
 #include "app_controller.h"
 
 // Live sample path: raw UART samples become current values, chart buffers, and score condition.
+// Entry point for serial samples; keeps the signal handler tiny and focused.
 void AppController::onSampleReceived(const SensorSample &sample)
 {
     processSample(sample);
 }
 
+// Copies a raw sample into current state and accumulates it for live charts.
 void AppController::processSample(const SensorSample &sample)
 {
     const bool stateUpdated = sample.state != m_state || sample.operatingCondition != m_operatingCondition;
@@ -35,6 +37,7 @@ void AppController::processSample(const SensorSample &sample)
     }
 }
 
+// Publishes the aggregated live window to charts, storage, and QML bindings.
 void AppController::flushLiveData()
 {
     if (!m_pendingLiveRefresh && m_windowSampleCount == 0)
@@ -76,6 +79,7 @@ void AppController::flushLiveData()
     m_pendingLiveRefresh = false;
 }
 
+// Recomputes the condition label and tone from the latest sample state.
 void AppController::updateCondition()
 {
     const QString nextCondition = m_latestSample.state.isEmpty()
@@ -89,6 +93,7 @@ void AppController::updateCondition()
     appendLog(QStringLiteral("Condition: %1").arg(m_condition));
 }
 
+// Forces QML to refresh the relative timestamp text once per timer tick.
 void AppController::updateLastUpdateText()
 {
     emit lastUpdateTextChanged();
