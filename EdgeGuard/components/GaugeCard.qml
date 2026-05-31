@@ -62,6 +62,9 @@ Rectangle {
     }
 
     function formatValue(position) {
+        if (Math.abs(position) > 0 && Math.abs(position) < 1)
+            return position.toFixed(2)
+
         var rounded = Math.round(position * 10) / 10
         if (Math.abs(rounded - Math.round(rounded)) < 0.05)
             return Math.round(rounded).toString()

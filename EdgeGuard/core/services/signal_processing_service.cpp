@@ -36,8 +36,8 @@ SignalProcessingService::FFTResult SignalProcessingService::computeFFT(const QVe
     result.frequencies.reserve(uniqueBinCount);
     result.magnitudes.reserve(uniqueBinCount);
 
-    double maxMagnitude = -1.0;
-    int dominantIndex = 0;
+    double maxNonDcMagnitude = -1.0;
+    int dominantNonDcIndex = 0;
 
     for (int index = 0; index < uniqueBinCount; ++index) {
         const double magnitude = std::sqrt((output[index].r * output[index].r)
@@ -48,12 +48,13 @@ SignalProcessingService::FFTResult SignalProcessingService::computeFFT(const QVe
         result.magnitudes.append(magnitude);
         result.energy += magnitude;
 
-        if (magnitude > maxMagnitude) {
-            maxMagnitude = magnitude;
-            dominantIndex = index;
+        if (index > 0 && magnitude > maxNonDcMagnitude) {
+            maxNonDcMagnitude = magnitude;
+            dominantNonDcIndex = index;
         }
     }
 
+    const int dominantIndex = maxNonDcMagnitude > 1e-9 ? dominantNonDcIndex : 0;
     result.dominantFrequency = (dominantIndex * sampleRateHz) / sampleCount;
     return result;
 }
