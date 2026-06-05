@@ -69,7 +69,9 @@ bool AppController::exportHistoryCsv(const QUrl &fileUrl)
         return false;
     }
 
-    const DataStorageService::HistoryChunk chunk = m_storageService.loadLast24hSamples(std::numeric_limits<int>::max(), 0);
+    const QString deviceId = m_deviceId.trimmed();
+    const DataStorageService::HistoryChunk chunk =
+        m_storageService.loadLast24hSamples(std::numeric_limits<int>::max(), 0, deviceId);
     if (chunk.samples.isEmpty()) {
         appendLog(QStringLiteral("Could not export the 24h history CSV."));
         return false;
@@ -85,6 +87,7 @@ bool AppController::exportHistoryCsv(const QUrl &fileUrl)
     writeCsvRow(stream, {
                             QStringLiteral("timestamp_utc"),
                             QStringLiteral("timestamp_ms"),
+                            QStringLiteral("device_id"),
                             QStringLiteral("anomaly_score"),
                             QStringLiteral("condition"),
                             QStringLiteral("x"),
@@ -97,6 +100,7 @@ bool AppController::exportHistoryCsv(const QUrl &fileUrl)
         writeCsvRow(stream, {
                                 csvCell(sample.timestampUtc.toUTC().toString(Qt::ISODateWithMs)),
                                 QString::number(sample.timestampUtc.toUTC().toMSecsSinceEpoch()),
+                                csvCell(sample.deviceId),
                                 formatNumber(sample.anomalyScore, 3),
                                 csvCell(SensorSample::stateForScore(sample.anomalyScore)),
                                 formatNumber(sample.x, 4),
@@ -127,6 +131,9 @@ void AppController::storeHistorySample(double anomalyScore, double x, double y, 
     sample.y = y;
     sample.z = z;
     sample.temp = temp;
+    sample.deviceId = m_latestSample.deviceId.trimmed().isEmpty()
+                          ? m_deviceId.trimmed()
+                          : m_latestSample.deviceId.trimmed();
     m_storageService.appendSample(sample);
 
     m_lastStoredSampleMs = nowMs;
@@ -140,7 +147,9 @@ void AppController::storeHistorySample(double anomalyScore, double x, double y, 
 // Loads one paged history slice and attaches pagination metadata for QML.
 void AppController::loadHistoryChunk()
 {
-    const DataStorageService::HistoryChunk chunk = m_storageService.loadLast24hSamples(HistoryChunkSize, m_historyChunkOffset);
+    const QString deviceId = m_deviceId.trimmed();
+    const DataStorageService::HistoryChunk chunk =
+        m_storageService.loadLast24hSamples(HistoryChunkSize, m_historyChunkOffset, deviceId);
     updateHistoryData(parseHistorySamples(chunk.samples));
 
     if (m_historyData.isEmpty())
@@ -157,13 +166,20 @@ void AppController::loadHistoryChunk()
     m_historyData.insert(QStringLiteral("hasNewer"), chunk.offset > 0);
     m_historyData.insert(QStringLiteral("chunkStartIndex"), newestStart);
     m_historyData.insert(QStringLiteral("chunkEndIndex"), newestEnd);
+    m_historyData.insert(QStringLiteral("deviceId"), deviceId);
+
+    const QString historyScope = deviceId.isEmpty()
+                                     ? QStringLiteral("the local 24-hour history database")
+                                     : QStringLiteral("the local 24-hour history database for device %1").arg(deviceId);
     m_historyStatusText = totalCount > loadedCount
-                              ? QStringLiteral("Showing samples %1-%2 of %3 from the local 24-hour history database.")
+                              ? QStringLiteral("Showing samples %1-%2 of %3 from %4.")
                                     .arg(newestStart)
                                     .arg(newestEnd)
                                     .arg(totalCount)
-                              : QStringLiteral("%1 samples loaded from the local 24-hour history database.")
-                                    .arg(loadedCount);
+                                    .arg(historyScope)
+                              : QStringLiteral("%1 samples loaded from %2.")
+                                    .arg(loadedCount)
+                                    .arg(historyScope);
     emit historyDataChanged();
 }
 

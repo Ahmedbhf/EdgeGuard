@@ -43,6 +43,7 @@ bool DataStorageService::ensureSchema() const
     if (!createTableQuery.exec(QStringLiteral(
             "CREATE TABLE IF NOT EXISTS history_samples ("
             "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "device_id TEXT NOT NULL DEFAULT '',"
             "timestamp_ms INTEGER NOT NULL,"
             "anomaly REAL NOT NULL,"
             "x REAL NOT NULL,"
@@ -54,11 +55,44 @@ bool DataStorageService::ensureSchema() const
         return false;
     }
 
+    bool hasDeviceIdColumn = false;
+    QSqlQuery tableInfoQuery(m_database);
+    if (!tableInfoQuery.exec(QStringLiteral("PRAGMA table_info(history_samples)"))) {
+        qWarning() << "Could not inspect SQLite history table:" << tableInfoQuery.lastError().text();
+        return false;
+    }
+
+    while (tableInfoQuery.next()) {
+        if (tableInfoQuery.value(1).toString() == QStringLiteral("device_id")) {
+            hasDeviceIdColumn = true;
+            break;
+        }
+    }
+
+    if (!hasDeviceIdColumn) {
+        QSqlQuery alterTableQuery(m_database);
+        if (!alterTableQuery.exec(QStringLiteral(
+                "ALTER TABLE history_samples ADD COLUMN device_id TEXT NOT NULL DEFAULT ''")))
+        {
+            qWarning() << "Could not add SQLite history device column:" << alterTableQuery.lastError().text();
+            return false;
+        }
+    }
+
     QSqlQuery createIndexQuery(m_database);
     if (!createIndexQuery.exec(
             QStringLiteral("CREATE INDEX IF NOT EXISTS idx_history_samples_timestamp ON history_samples(timestamp_ms)")))
     {
         qWarning() << "Could not create SQLite history index:" << createIndexQuery.lastError().text();
+        return false;
+    }
+
+    QSqlQuery createDeviceIndexQuery(m_database);
+    if (!createDeviceIndexQuery.exec(QStringLiteral(
+            "CREATE INDEX IF NOT EXISTS idx_history_samples_device_timestamp "
+            "ON history_samples(device_id, timestamp_ms)")))
+    {
+        qWarning() << "Could not create SQLite history device index:" << createDeviceIndexQuery.lastError().text();
         return false;
     }
 

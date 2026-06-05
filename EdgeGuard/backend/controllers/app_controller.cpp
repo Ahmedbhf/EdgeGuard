@@ -10,6 +10,7 @@ AppController::AppController(QObject *parent) : QObject(parent)
         if (!trimmedDeviceId.isEmpty() && m_deviceId != trimmedDeviceId) {
             m_deviceId = trimmedDeviceId;
             emit deviceIdChanged();
+            refreshHistoryData();
         }
 
         if (m_machineType.isEmpty())

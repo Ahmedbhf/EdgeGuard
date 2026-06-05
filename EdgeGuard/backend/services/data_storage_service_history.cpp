@@ -26,8 +26,9 @@ void DataStorageService::appendSample(const SensorSample &sample)
 
     QSqlQuery query(m_database);
     query.prepare(QStringLiteral(
-        "INSERT INTO history_samples (timestamp_ms, anomaly, x, y, z, temp) "
-        "VALUES (?, ?, ?, ?, ?, ?)"));
+        "INSERT INTO history_samples (device_id, timestamp_ms, anomaly, x, y, z, temp) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)"));
+    query.addBindValue(sample.deviceId.trimmed());
     query.addBindValue(sample.timestampUtc.toUTC().toMSecsSinceEpoch());
     query.addBindValue(sample.anomalyScore);
     query.addBindValue(sample.x);
@@ -52,19 +53,19 @@ void DataStorageService::cleanOldData()
 }
 
 // Loads a paged slice of samples from the last 24 hours.
-DataStorageService::HistoryChunk DataStorageService::loadLast24hSamples(int limit, int offset) const
+DataStorageService::HistoryChunk DataStorageService::loadLast24hSamples(int limit, int offset, const QString &deviceId) const
 {
-    return queryLast24hSamples(limit, offset);
+    return queryLast24hSamples(limit, offset, deviceId);
 }
 
 // Writes every available 24-hour sample to a simple CSV export file.
-bool DataStorageService::exportCsv(const QString &destinationPath) const
+bool DataStorageService::exportCsv(const QString &destinationPath, const QString &deviceId) const
 {
     const QString targetPath = destinationPath.trimmed();
     if (targetPath.isEmpty())
         return false;
 
-    const HistoryChunk chunk = loadLast24hSamples(std::numeric_limits<int>::max(), 0);
+    const HistoryChunk chunk = loadLast24hSamples(std::numeric_limits<int>::max(), 0, deviceId);
     if (chunk.samples.isEmpty())
         return false;
 
@@ -95,7 +96,7 @@ bool DataStorageService::exportCsv(const QString &destinationPath) const
 }
 
 // Queries newest rows first, then restores chronological order for charting.
-DataStorageService::HistoryChunk DataStorageService::queryLast24hSamples(int limit, int offset) const
+DataStorageService::HistoryChunk DataStorageService::queryLast24hSamples(int limit, int offset, const QString &deviceId) const
 {
     HistoryChunk chunk;
     if (!ensureDatabase())
@@ -104,20 +105,35 @@ DataStorageService::HistoryChunk DataStorageService::queryLast24hSamples(int lim
     const int safeLimit = std::max(1, limit);
     const int safeOffset = std::max(0, offset);
     const qint64 cutoffMs = QDateTime::currentDateTimeUtc().toMSecsSinceEpoch() - RollingWindowMs;
+    const QString trimmedDeviceId = deviceId.trimmed();
+    const bool filterByDevice = !trimmedDeviceId.isEmpty();
 
     QSqlQuery countQuery(m_database);
-    countQuery.prepare(QStringLiteral("SELECT COUNT(*) FROM history_samples WHERE timestamp_ms >= ?"));
+    countQuery.prepare(filterByDevice
+                           ? QStringLiteral("SELECT COUNT(*) FROM history_samples WHERE device_id = ? AND timestamp_ms >= ?")
+                           : QStringLiteral("SELECT COUNT(*) FROM history_samples WHERE timestamp_ms >= ?"));
+    if (filterByDevice)
+        countQuery.addBindValue(trimmedDeviceId);
     countQuery.addBindValue(cutoffMs);
     if (countQuery.exec() && countQuery.next())
         chunk.totalCount = countQuery.value(0).toInt();
 
     QSqlQuery query(m_database);
-    query.prepare(QStringLiteral(
-        "SELECT timestamp_ms, anomaly, x, y, z, temp "
-        "FROM history_samples "
-        "WHERE timestamp_ms >= ? "
-        "ORDER BY timestamp_ms DESC "
-        "LIMIT ? OFFSET ?"));
+    query.prepare(filterByDevice
+                      ? QStringLiteral(
+                            "SELECT device_id, timestamp_ms, anomaly, x, y, z, temp "
+                            "FROM history_samples "
+                            "WHERE device_id = ? AND timestamp_ms >= ? "
+                            "ORDER BY timestamp_ms DESC "
+                            "LIMIT ? OFFSET ?")
+                      : QStringLiteral(
+                            "SELECT device_id, timestamp_ms, anomaly, x, y, z, temp "
+                            "FROM history_samples "
+                            "WHERE timestamp_ms >= ? "
+                            "ORDER BY timestamp_ms DESC "
+                            "LIMIT ? OFFSET ?"));
+    if (filterByDevice)
+        query.addBindValue(trimmedDeviceId);
     query.addBindValue(cutoffMs);
     query.addBindValue(safeLimit);
     query.addBindValue(safeOffset);
@@ -128,12 +144,13 @@ DataStorageService::HistoryChunk DataStorageService::queryLast24hSamples(int lim
 
     while (query.next()) {
         SensorSample sample;
-        sample.timestampUtc = QDateTime::fromMSecsSinceEpoch(query.value(0).toLongLong(), QTimeZone::UTC);
-        sample.anomalyScore = query.value(1).toDouble();
-        sample.x = query.value(2).toDouble();
-        sample.y = query.value(3).toDouble();
-        sample.z = query.value(4).toDouble();
-        sample.temp = query.value(5).toDouble();
+        sample.deviceId = query.value(0).toString();
+        sample.timestampUtc = QDateTime::fromMSecsSinceEpoch(query.value(1).toLongLong(), QTimeZone::UTC);
+        sample.anomalyScore = query.value(2).toDouble();
+        sample.x = query.value(3).toDouble();
+        sample.y = query.value(4).toDouble();
+        sample.z = query.value(5).toDouble();
+        sample.temp = query.value(6).toDouble();
         chunk.samples.prepend(sample);
     }
 
