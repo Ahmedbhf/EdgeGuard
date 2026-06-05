@@ -9,9 +9,10 @@ Page {
     id: root
 
     property bool connectionRequested: false
+    property bool deviceDetectionTimedOut: false
     readonly property string preferredPort: "COM11"
     readonly property string assetsBasePath: "qrc:/qt/qml/EdgeGuard/assets/"
-    readonly property bool deviceReady: appController.deviceConnected || appController.connected
+    readonly property bool deviceReady: appController.deviceConnected
 
     property var machineCards: [
         { label: "DC Motor", value: "DC Motor", image: root.assetsBasePath + "motor.jpg" },
@@ -27,10 +28,58 @@ Page {
     }
 
     function continueToDashboard() {
-        if (!root.deviceReady)
+        if (!root.deviceReady) {
+            deviceIdTimeoutDialog.open()
             return
+        }
 
         StackView.view.push("Dashboard.qml")
+    }
+
+    function beginDeviceDetection() {
+        root.connectionRequested = true
+        root.deviceDetectionTimedOut = false
+        deviceDetectionTimer.restart()
+        appController.connectPreferredPort(root.preferredPort)
+    }
+
+    Timer {
+        id: deviceDetectionTimer
+        interval: 60000
+        repeat: false
+        onTriggered: {
+            if (!appController.deviceConnected) {
+                root.deviceDetectionTimedOut = true
+                deviceIdTimeoutDialog.open()
+            }
+        }
+    }
+
+    Connections {
+        target: appController
+
+        function onDeviceIdChanged() {
+            if (appController.deviceConnected) {
+                root.deviceDetectionTimedOut = false
+                deviceDetectionTimer.stop()
+            }
+        }
+    }
+
+    Dialog {
+        id: deviceIdTimeoutDialog
+        title: "Device ID not detected"
+        modal: true
+        standardButtons: Dialog.Ok
+        anchors.centerIn: parent
+
+        contentItem: Text {
+            width: 360
+            text: "No device ID was received from UART. Check the cable, selected port, baud rate, and that the device is sending telemetry, then try connecting again."
+            color: Theme.text
+            wrapMode: Text.WordWrap
+            font.pixelSize: 14
+        }
     }
 
     Item {
@@ -57,14 +106,11 @@ Page {
             }
 
             ControlButton {
-                text: "Connect Device"
+                text: root.connectionRequested && !appController.deviceConnected ? "Waiting for ID" : "Connect Device"
                 width: 200
                 height: 44
                 primary: true
-                onClicked: {
-                    root.connectionRequested = true
-                    appController.connectPreferredPort(root.preferredPort)
-                }
+                onClicked: root.beginDeviceDetection()
             }
 
             Grid {
@@ -149,8 +195,10 @@ Page {
             Text {
                 width: parent.width
                 visible: root.connectionRequested && !appController.deviceConnected
-                text: "Waiting for UART data..."
-                color: Theme.muted
+                text: root.deviceDetectionTimedOut
+                      ? "No device ID detected. Try reconnecting after checking the UART output."
+                      : "Waiting for UART device ID..."
+                color: root.deviceDetectionTimedOut ? Theme.fault : Theme.muted
                 font.pixelSize: 13
             }
 
