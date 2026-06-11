@@ -16,6 +16,8 @@ struct SensorSample
     double ambientTemp = 0.0;
     QString state;
     QString operatingCondition;
+    bool isLearning = false;
+    int nlValue = 0;
 
     // Converts an anomaly score into the state labels expected by the UI.
     static QString stateForScore(double anomalyScore)

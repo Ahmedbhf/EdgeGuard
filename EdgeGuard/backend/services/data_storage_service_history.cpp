@@ -15,7 +15,6 @@
 
 namespace {
 constexpr qint64 RollingWindowMs = 24LL * 60LL * 60LL * 1000LL;
-const char *HeaderLine = "timestamp,anomaly,x,y,z,temp\n";
 }
 
 // Inserts one timestamped sensor sample into the rolling history table.
@@ -56,43 +55,6 @@ void DataStorageService::cleanOldData()
 DataStorageService::HistoryChunk DataStorageService::loadLast24hSamples(int limit, int offset, const QString &deviceId) const
 {
     return queryLast24hSamples(limit, offset, deviceId);
-}
-
-// Writes every available 24-hour sample to a simple CSV export file.
-bool DataStorageService::exportCsv(const QString &destinationPath, const QString &deviceId) const
-{
-    const QString targetPath = destinationPath.trimmed();
-    if (targetPath.isEmpty())
-        return false;
-
-    const HistoryChunk chunk = loadLast24hSamples(std::numeric_limits<int>::max(), 0, deviceId);
-    if (chunk.samples.isEmpty())
-        return false;
-
-    QFileInfo targetInfo(targetPath);
-    QDir().mkpath(targetInfo.absolutePath());
-
-    QSaveFile file(targetPath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-        return false;
-
-    QTextStream stream(&file);
-    stream << HeaderLine;
-    for (const SensorSample &sample : chunk.samples) {
-        stream << sample.timestampUtc.toUTC().toString(Qt::ISODateWithMs)
-               << ','
-               << QString::number(sample.anomalyScore, 'f', 3)
-               << ','
-               << QString::number(sample.x, 'f', 4)
-               << ','
-               << QString::number(sample.y, 'f', 4)
-               << ','
-               << QString::number(sample.z, 'f', 4)
-               << ','
-               << QString::number(sample.temp, 'f', 2)
-               << '\n';
-    }
-    return file.commit();
 }
 
 // Queries newest rows first, then restores chronological order for charting.

@@ -144,7 +144,7 @@ void SerialService::processLine(const QByteArray &line)
         return;
 
     const QStringList fields = textLine.split(',');
-    if (fields.size() != 7 && fields.size() != 8 && fields.size() != 9)
+    if (fields.size() < 7)
         return;
 
     SensorSample sample;
@@ -186,6 +186,33 @@ void SerialService::processLine(const QByteArray &line)
         sample.operatingCondition = sample.state == QStringLiteral("NORMAL")
                                         ? QStringLiteral("Motor On")
                                         : QStringLiteral("Monitoring");
+    }
+
+    bool isLearning = false;
+    int nlValue = 0;
+    for (int i = 7; i < fields.size(); ++i) {
+        QString f = fields[i].trimmed();
+        if (f.startsWith(QStringLiteral("l:"), Qt::CaseInsensitive)) {
+            bool ok = false;
+            int val = f.mid(2).trimmed().toInt(&ok);
+            if (ok && val == 1) {
+                isLearning = true;
+            }
+        } else if (f.startsWith(QStringLiteral("nl:"), Qt::CaseInsensitive)) {
+            bool ok = false;
+            int val = f.mid(3).trimmed().toInt(&ok);
+            if (ok) {
+                nlValue = val;
+            }
+        }
+    }
+
+    sample.isLearning = isLearning;
+    sample.nlValue = nlValue;
+
+    if (isLearning) {
+        sample.state = QStringLiteral("LEARNING");
+        sample.operatingCondition = QString::number(nlValue) + QStringLiteral("%");
     }
 
     sample.timestampUtc = QDateTime::currentDateTimeUtc();

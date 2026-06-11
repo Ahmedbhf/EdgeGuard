@@ -210,7 +210,7 @@ private:
     static constexpr int StorageCleanupIntervalSamples = 20;
     static constexpr int MaxLogLines = 300;
     static constexpr int HistoryChunkSize = 1000;
-    static constexpr int RelearnCooldownSeconds = 5;
+    static constexpr int RelearnCooldownSeconds = 40;
 };
 
 #endif

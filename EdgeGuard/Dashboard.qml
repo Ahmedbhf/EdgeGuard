@@ -25,7 +25,9 @@ Item {
                                              : (selectedAxis === "Y" ? "#34D399" : "#F59E0B")
     readonly property color stateColor: appController.state === "CRITICAL"
                                           ? Theme.fault
-                                          : (appController.state === "WARNING" ? Theme.warning : Theme.ok)
+                                          : (appController.state === "WARNING"
+                                              ? Theme.warning
+                                              : (appController.state === "LEARNING" ? Theme.primary : Theme.ok))
 
     function returnToSetup() {
         var stack = StackView.view
