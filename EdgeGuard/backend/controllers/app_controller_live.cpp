@@ -2,12 +2,26 @@
 
 // Live sample path: raw UART samples become current values, chart buffers, and score condition.
 // Entry point for serial samples; keeps the signal handler tiny and focused.
+// =========================================================================
+// 1. onSampleReceived (Internal Slot)
+// =========================================================================
+// Triggered by: SerialService::sampleReceived signal (Line 19 of app_controller.cpp)
+//               whenever a valid telemetry line is parsed from UART/serial.
+// Role: Serves as the immediate receiver for incoming real-time sensor packets,
+//       passing the parsed SensorSample to the processSample method.
 void AppController::onSampleReceived(const SensorSample &sample)
 {
     processSample(sample);
 }
 
-// Copies a raw sample into current state and accumulates it for live charts.
+// =========================================================================
+// 2. processSample (Internal Helper)
+// =========================================================================
+// Triggered internally by: AppController::onSampleReceived()
+// Role: Copies incoming sensor metrics (acceleration axes, temperature, anomaly score,
+//       operating conditions) into the controller's instance variables. It aggregates
+//       averages for the current timer window (to prevent GUI rendering choke) and
+//       detects changes in machine state (NORMAL, WARNING, CRITICAL) to trigger alerts.
 void AppController::processSample(const SensorSample &sample)
 {
     const bool stateUpdated = sample.state != m_state || sample.operatingCondition != m_operatingCondition;
@@ -19,7 +33,6 @@ void AppController::processSample(const SensorSample &sample)
     m_y = sample.y;
     m_z = sample.z;
     m_temp = sample.temp;
-    m_ambientTemp = sample.ambientTemp;
 
     m_windowTempSum += m_temp;
     m_windowAnomalySum += m_anomalyScore;
@@ -29,15 +42,21 @@ void AppController::processSample(const SensorSample &sample)
     ++m_windowSampleCount;
     m_pendingLiveRefresh = true;
 
-    emit lastUpdateTextChanged();
-
     if (stateUpdated) {
         emit stateChanged();
         appendLog(QStringLiteral("State: %1, Operating Condition: %2").arg(m_state, m_operatingCondition));
     }
 }
 
-// Publishes the aggregated live window to charts, storage, and QML bindings.
+// =========================================================================
+// 3. flushLiveData (Internal Timer Callback Slot)
+// =========================================================================
+// Triggered by: m_liveDataTimer timeout signal (Line 25 of app_controller.cpp, fires every 50ms)
+// Role: Averages the raw readings collected during the 50ms interval and appends the resulting
+//       aggregated point to rolling live chart vectors:
+//       - `anomalyValues`: Feeds "Score vs Time" LiveTrendChart in Dashboard.qml (Line 130)
+//       - `xAxisValues`, `yAxisValues`, `zAxisValues`: Feeds the select-axis LiveTrendChart (Line 157)
+//       It also invokes `storeHistorySample` to save the telemetry to the SQLite database.
 void AppController::flushLiveData()
 {
     if (!m_pendingLiveRefresh && m_windowSampleCount == 0)
@@ -51,18 +70,15 @@ void AppController::flushLiveData()
         const double aggregatedZ = m_windowZSum / m_windowSampleCount;
 
         appendValue(m_anomalyValues, aggregatedAnomaly, MaxHistory);
-        appendValue(m_temperatureValues, aggregatedTemp, MaxHistory);
         appendValue(m_xAxisValues, aggregatedX, MaxHistory);
         appendValue(m_yAxisValues, aggregatedY, MaxHistory);
         appendValue(m_zAxisValues, aggregatedZ, MaxHistory);
 
         emit anomalyValuesChanged();
-        emit temperatureValuesChanged();
         emit xAxisValuesChanged();
         emit yAxisValuesChanged();
         emit zAxisValuesChanged();
 
-        updateCondition();
         storeHistorySample(aggregatedAnomaly, aggregatedX, aggregatedY, aggregatedZ, aggregatedTemp);
     }
 
@@ -77,24 +93,4 @@ void AppController::flushLiveData()
         emit dataChanged();
 
     m_pendingLiveRefresh = false;
-}
-
-// Recomputes the condition label and tone from the latest sample state.
-void AppController::updateCondition()
-{
-    const QString nextCondition = m_latestSample.state.isEmpty()
-                                      ? SensorSample::stateForScore(m_anomalyScore)
-                                      : m_latestSample.state;
-    if (m_condition == nextCondition)
-        return;
-
-    m_condition = nextCondition;
-    m_conditionTone = toneForCondition(m_condition);
-    appendLog(QStringLiteral("Condition: %1").arg(m_condition));
-}
-
-// Forces QML to refresh the relative timestamp text once per timer tick.
-void AppController::updateLastUpdateText()
-{
-    emit lastUpdateTextChanged();
 }

@@ -33,36 +33,4 @@ function computeRange(values, clampMinToZero) {
     }
 }
 
-// Compute a readable Y-axis maximum for compact live trend charts.
-function computeDynamicMax(values) {
-    if (!values || values.length === 0)
-        return 1.0
 
-    var maxValue = values[0]
-    for (var i = 1; i < values.length; ++i) {
-        if (values[i] > maxValue)
-            maxValue = values[i]
-    }
-
-    var padded = maxValue * 1.2
-    if (padded <= 1)
-        padded = 1
-    else if (padded <= 2)
-        padded = 2
-    else if (padded <= 5)
-        padded = 5
-    else if (padded <= 10)
-        padded = 10
-    else if (padded <= 20)
-        padded = 20
-    else if (padded <= 50)
-        padded = 50
-    else if (padded <= 100)
-        padded = 100
-    else if (padded <= 200)
-        padded = 200
-    else
-        padded = Math.ceil(padded / 50) * 50
-
-    return padded
-}

@@ -16,50 +16,33 @@
 class AppController : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(double anomalyScore READ anomalyScore NOTIFY dataChanged)
-    Q_PROPERTY(QString condition READ condition NOTIFY dataChanged)
-    Q_PROPERTY(QString conditionTone READ conditionTone NOTIFY dataChanged)
-    Q_PROPERTY(double temp READ temp NOTIFY dataChanged)
-    Q_PROPERTY(double ambientTemp READ ambientTemp NOTIFY dataChanged)
-    Q_PROPERTY(QVector<double> anomalyValues READ anomalyValues NOTIFY anomalyValuesChanged)
-    Q_PROPERTY(QVector<double> temperatureValues READ temperatureValues NOTIFY temperatureValuesChanged)
-    Q_PROPERTY(QVector<double> xAxisValues READ xAxisValues NOTIFY xAxisValuesChanged)
-    Q_PROPERTY(QVector<double> yAxisValues READ yAxisValues NOTIFY yAxisValuesChanged)
-    Q_PROPERTY(QVector<double> zAxisValues READ zAxisValues NOTIFY zAxisValuesChanged)
-    Q_PROPERTY(bool connected READ connected NOTIFY connectedChanged)
-    Q_PROPERTY(bool deviceConnected READ deviceConnected NOTIFY deviceIdChanged)
-    Q_PROPERTY(QStringList availablePorts READ availablePorts NOTIFY availablePortsChanged)
-    Q_PROPERTY(QString currentPort READ currentPort NOTIFY connectedChanged)
-    Q_PROPERTY(QString selectedPort READ selectedPort NOTIFY selectedPortChanged)
-    Q_PROPERTY(QString machineType READ machineType WRITE setMachineType NOTIFY machineTypeChanged)
-    Q_PROPERTY(QString deviceId READ deviceId NOTIFY deviceIdChanged)
-    Q_PROPERTY(QString state READ state NOTIFY stateChanged)
-    Q_PROPERTY(QString stateSummary READ stateSummary NOTIFY stateChanged)
-    Q_PROPERTY(QString operatingCondition READ operatingCondition NOTIFY stateChanged)
-    Q_PROPERTY(QString logText READ logText NOTIFY logTextChanged)
-    Q_PROPERTY(QString lastUpdateText READ lastUpdateText NOTIFY lastUpdateTextChanged)
-    Q_PROPERTY(QString historyStatusText READ historyStatusText NOTIFY historyDataChanged)
-    Q_PROPERTY(QVariantMap historyData READ historyData NOTIFY historyDataChanged)
-    Q_PROPERTY(bool relearnAvailable READ relearnAvailable NOTIFY relearnAvailabilityChanged)
-    Q_PROPERTY(int relearnCooldownSeconds READ relearnCooldownSeconds NOTIFY relearnCooldownChanged)
+    Q_PROPERTY(double anomalyScore READ anomalyScore NOTIFY dataChanged) // Shown on Dashboard.qml in Anomaly Score GaugeCard (Line 180)
+    Q_PROPERTY(double temp READ temp NOTIFY dataChanged) // Shown on Dashboard.qml in Temperature GaugeCard (Line 193)
+    Q_PROPERTY(QVector<double> anomalyValues READ anomalyValues NOTIFY anomalyValuesChanged) // Used by the live Score vs Time LiveTrendChart in Dashboard.qml (Line 130)
+    Q_PROPERTY(QVector<double> xAxisValues READ xAxisValues NOTIFY xAxisValuesChanged) // Used by the live Vibration LiveTrendChart in Dashboard.qml when axis X is selected
+    Q_PROPERTY(QVector<double> yAxisValues READ yAxisValues NOTIFY yAxisValuesChanged) // Used by the live Vibration LiveTrendChart in Dashboard.qml when axis Y is selected
+    Q_PROPERTY(QVector<double> zAxisValues READ zAxisValues NOTIFY zAxisValuesChanged) // Used by the live Vibration LiveTrendChart in Dashboard.qml when axis Z is selected
+    Q_PROPERTY(bool connected READ connected NOTIFY connectedChanged) // Toggles Connect/Disconnect labels in DashboardHeaderBar.qml (Line 59)
+    Q_PROPERTY(bool deviceConnected READ deviceConnected NOTIFY deviceIdChanged) // Binding source for 'deviceReady' in SetupPage.qml to enable 'Continue' button (Line 15)
+    Q_PROPERTY(QStringList availablePorts READ availablePorts NOTIFY availablePortsChanged) // Exposes list of COM ports to SetupPage
+    Q_PROPERTY(QString machineType READ machineType WRITE setMachineType NOTIFY machineTypeChanged) // Selected in SetupPage grid (Line 127) and shown in DashboardHeaderBar.qml (Line 40)
+    Q_PROPERTY(QString deviceId READ deviceId NOTIFY deviceIdChanged) // Shown on SetupPage.qml (Line 184) and DashboardHeaderBar.qml (Line 41)
+    Q_PROPERTY(QString state READ state NOTIFY stateChanged) // Dictates visual states/alarms (e.g. NORMAL/WARNING/CRITICAL) on the Dashboard
+    Q_PROPERTY(QString operatingCondition READ operatingCondition NOTIFY stateChanged) // Displays details of the machine state (e.g., motor off, friction) on Dashboard.qml (Line 100)
+    Q_PROPERTY(QString historyStatusText READ historyStatusText NOTIFY historyDataChanged) // Shows paged database index range in HistoryPage.qml (Line 100)
+    Q_PROPERTY(QVariantMap historyData READ historyData NOTIFY historyDataChanged) // Source of historical points and FFT spectrum for charts in HistoryPage.qml (Line 112)
+    Q_PROPERTY(bool relearnAvailable READ relearnAvailable NOTIFY relearnAvailabilityChanged) // Enable/Disable state of the 'Relearn' button in DashboardHeaderBar.qml (Line 68)
+    Q_PROPERTY(int relearnCooldownSeconds READ relearnCooldownSeconds NOTIFY relearnCooldownChanged) // Displays count-down timer next to Relearn text in DashboardHeaderBar.qml (Line 66)
 
 public:
     explicit AppController(QObject *parent = nullptr);
 
     // Returns the latest anomaly score shown on the dashboard.
     double anomalyScore() const { return m_anomalyScore; }
-    // Returns the current health condition label for the machine.
-    QString condition() const { return m_condition; }
-    // Returns the UI tone token that matches the current condition.
-    QString conditionTone() const { return m_conditionTone; }
     // Returns the latest measured machine temperature.
     double temp() const { return m_temp; }
-    // Returns the latest measured ambient temperature.
-    double ambientTemp() const { return m_ambientTemp; }
     // Returns the rolling anomaly chart values.
     QVector<double> anomalyValues() const { return m_anomalyValues; }
-    // Returns the rolling temperature chart values.
-    QVector<double> temperatureValues() const { return m_temperatureValues; }
     // Returns the rolling X-axis acceleration values.
     QVector<double> xAxisValues() const { return m_xAxisValues; }
     // Returns the rolling Y-axis acceleration values.
@@ -72,23 +55,14 @@ public:
     bool deviceConnected() const { return !m_deviceId.isEmpty(); }
     // Returns display labels for the ports detected by the serial service.
     QStringList availablePorts() const { return m_serialService.portDisplayNames(); }
-    // Returns the active port while connected, otherwise the user's selected port.
-    QString currentPort() const { return connected() ? m_serialService.currentPort() : m_selectedPort; }
-    // Returns the port currently selected in the setup UI.
-    QString selectedPort() const { return m_selectedPort; }
     // Returns the machine type selected or inferred for this session.
     QString machineType() const { return m_machineType; }
     // Returns the latest device identifier reported by the hardware.
     QString deviceId() const { return m_deviceId; }
     // Returns the current machine state label from the device or score fallback.
     QString state() const { return m_state; }
-    // Combines state and operating condition for compact UI display.
-    QString stateSummary() const { return QStringLiteral("%1 · %2").arg(m_state, m_operatingCondition); }
     // Returns the current operating condition or detected fault class.
     QString operatingCondition() const { return m_operatingCondition; }
-    // Returns the UI log buffer as newline-separated text.
-    QString logText() const { return m_logs.join('\n'); }
-    QString lastUpdateText() const;
     // Returns the status line for the currently loaded history chunk.
     QString historyStatusText() const { return m_historyStatusText; }
     // Returns chart-ready history data consumed by the History page.
@@ -98,38 +72,46 @@ public:
     // Returns the remaining seconds before another relearn command is allowed.
     int relearnCooldownSeconds() const { return m_relearnCooldownSeconds; }
 
+    // Connects to a specific COM/UART port. Used internally.
     Q_INVOKABLE void connectToPort(const QString &portName);
+    // Called by SetupPage.qml "Connect Device" ControlButton (Line 113)
     Q_INVOKABLE void connectPreferredPort(const QString &preferredPort);
+    // Closes UART port. Used internally.
     Q_INVOKABLE void disconnectPort();
+    // Called by DashboardHeaderBar.qml "Disconnect" ControlButton (Line 61)
     Q_INVOKABLE void disconnectAndReset();
-    // Refreshes the serial port list exposed to QML.
+    // Rescans available system COM/TTY ports.
     Q_INVOKABLE void refreshPorts() { m_serialService.refreshPorts(); }
-    // Returns the raw system port name for a visible port row.
+    // Helper to resolve the system port name behind the selected list view row.
     Q_INVOKABLE QString portNameAt(int index) const { return m_serialService.portNameAt(index); }
+    // Stores the setup page's selected port. Used internally.
     Q_INVOKABLE void setSelectedPort(const QString &portName);
+    // Resets identity state. Used internally.
     Q_INVOKABLE void resetDeviceIdentity();
+    // Sets the machine type. Used internally.
     void setMachineType(const QString &machineType);
+    // Called by "Refresh" ControlButton in HistoryPage.qml (Line 78)
     Q_INVOKABLE void refreshHistoryData();
+    // Called by "Older" ControlButton in HistoryPage.qml (Line 84) to page backward
     Q_INVOKABLE void loadOlderHistoryChunk();
+    // Called by "Newer" ControlButton in HistoryPage.qml (Line 90) to page forward
     Q_INVOKABLE void loadNewerHistoryChunk();
+    // Called by "Export CSV" ControlButton in HistoryPage.qml (Line 95)
     Q_INVOKABLE bool exportHistoryCsv(const QUrl &fileUrl);
+    // Called by "Relearn" ControlButton in DashboardHeaderBar.qml (Line 69)
     Q_INVOKABLE void requestRelearn();
 
 signals:
     void dataChanged();
     void anomalyValuesChanged();
-    void temperatureValuesChanged();
     void xAxisValuesChanged();
     void yAxisValuesChanged();
     void zAxisValuesChanged();
     void connectedChanged();
     void availablePortsChanged();
-    void selectedPortChanged();
     void machineTypeChanged();
     void deviceIdChanged();
     void stateChanged();
-    void logTextChanged();
-    void lastUpdateTextChanged();
     void historyDataChanged();
     void relearnAvailabilityChanged();
     void relearnCooldownChanged();
@@ -137,7 +119,6 @@ signals:
 private slots:
     void onSampleReceived(const SensorSample &sample);
     void flushLiveData();
-    void updateLastUpdateText();
     void tickRelearnCooldown();
 
 private:
@@ -150,7 +131,6 @@ private:
     void processSample(const SensorSample &sample);
     void syncPorts();
     void syncConnection();
-    void updateCondition();
     void appendLog(const QString &text);
     void storeHistorySample(double anomalyScore, double x, double y, double z, double temp);
     ParsedHistory parseHistorySamples(const QVector<SensorSample> &samples) const;
@@ -162,7 +142,6 @@ private:
     void updateHistoryData(const ParsedHistory &parsedHistory);
     void clearHistoryData(const QString &statusText);
     static void appendValue(QVector<double> &values, double value, int maxHistory);
-    static QString toneForCondition(const QString &condition);
 
     SerialService m_serialService;
     DataStorageService m_storageService;
@@ -176,13 +155,10 @@ private:
     QVariantMap m_historyData;
     SensorSample m_latestSample;
     QVector<double> m_anomalyValues;
-    QVector<double> m_temperatureValues;
     QVector<double> m_xAxisValues;
     QVector<double> m_yAxisValues;
     QVector<double> m_zAxisValues;
-    QStringList m_logs;
     QTimer m_liveDataTimer;
-    QTimer m_lastUpdateTimer;
     QTimer m_relearnCooldownTimer;
     bool m_pendingLiveRefresh = false;
     int m_windowSampleCount = 0;
@@ -193,10 +169,7 @@ private:
     double m_y = 0.0;
     double m_z = 0.0;
     double m_anomalyScore = 0.0;
-    QString m_condition = QStringLiteral("CRITICAL");
-    QString m_conditionTone = QStringLiteral("fault");
     double m_temp = 0.0;
-    double m_ambientTemp = 0.0;
     double m_windowTempSum = 0.0;
     double m_windowAnomalySum = 0.0;
     double m_windowXSum = 0.0;
@@ -208,7 +181,6 @@ private:
     static constexpr int LiveAggregationIntervalMs = 50;
     static constexpr int StorageIntervalMs = 250;
     static constexpr int StorageCleanupIntervalSamples = 20;
-    static constexpr int MaxLogLines = 300;
     static constexpr int HistoryChunkSize = 1000;
     static constexpr int RelearnCooldownSeconds = 40;
 };

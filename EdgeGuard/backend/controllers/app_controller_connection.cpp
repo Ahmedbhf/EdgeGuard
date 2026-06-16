@@ -1,7 +1,13 @@
 #include "app_controller.h"
 
 // Serial-port and setup identity logic: everything needed to enter/leave the device session.
-// Normalizes a UI port label, selects it, and opens the serial connection.
+
+// =========================================================================
+// 1. connectToPort (Internal Helper)
+// =========================================================================
+// Triggered internally by: AppController::connectPreferredPort()
+// Role: Extracts the clean COM/UART port name (removing details) and instructs the
+//       underlying SerialService to open the port. It logs the result of the connection.
 void AppController::connectToPort(const QString &portName)
 {
     const QString port = portName.split(' ').first().trimmed();
@@ -15,7 +21,15 @@ void AppController::connectToPort(const QString &portName)
         appendLog(QStringLiteral("Connected to %1").arg(port));
 }
 
-// Chooses the preferred, selected, or first available port before connecting.
+// =========================================================================
+// 2. connectPreferredPort (Q_INVOKABLE)
+// =========================================================================
+// Triggered by: "Connect Device" ControlButton in SetupPage.qml (Line 108)
+//               via the Javascript helper root.beginDeviceDetection() (Line 39)
+// Role: Refreshes system serial ports and loops through available ports to find
+//       a match for the preferredPort ("COM11"). If the preferred port is not found,
+//       it falls back to the last selected port or the first detected port. It then
+//       calls connectToPort() to open the UART communication stream.
 void AppController::connectPreferredPort(const QString &preferredPort)
 {
     refreshPorts();
@@ -38,21 +52,36 @@ void AppController::connectPreferredPort(const QString &preferredPort)
     connectToPort(targetPort);
 }
 
-// Closes the active serial connection if one is open.
+// =========================================================================
+// 3. disconnectPort (Internal Helper)
+// =========================================================================
+// Triggered internally by: AppController::disconnectAndReset()
+// Role: Instructs the SerialService to close the currently open COM/UART port.
 void AppController::disconnectPort()
 {
     if (connected())
         m_serialService.disconnectPort();
 }
 
-// Disconnects from hardware and clears identity fields tied to that session.
+// =========================================================================
+// 4. disconnectAndReset (Q_INVOKABLE)
+// =========================================================================
+// Triggered by: "Disconnect" ControlButton in DashboardHeaderBar.qml (Line 59 & 122)
+//               via the onConnectionToggled signal handler in Dashboard.qml (Line 50)
+// Role: Disconnects from the serial device via disconnectPort() and resets the remembered
+//       device session properties (clearing device ID and machine type) via resetDeviceIdentity().
+//       This permits the user to return to the Setup Page to connect a new device.
 void AppController::disconnectAndReset()
 {
     disconnectPort();
     resetDeviceIdentity();
 }
 
-// Stores the setup page's selected port and notifies QML when it changes.
+// =========================================================================
+// 5. setSelectedPort (Internal Helper)
+// =========================================================================
+// Triggered internally by: AppController::connectToPort()
+// Role: Remembers the selected COM port name for reconnects and avoids redundant state updates.
 void AppController::setSelectedPort(const QString &portName)
 {
     const QString port = portName.trimmed();
@@ -60,10 +89,14 @@ void AppController::setSelectedPort(const QString &portName)
         return;
 
     m_selectedPort = port;
-    emit selectedPortChanged();
 }
 
-// Clears the remembered device id and machine type after a manual reset.
+// =========================================================================
+// 6. resetDeviceIdentity (Internal Helper)
+// =========================================================================
+// Triggered internally by: AppController::disconnectAndReset()
+// Role: Clears the cached device id string and machine type string. Emits the QML notifier
+//       signals `deviceIdChanged()` and `machineTypeChanged()` to reset setup assistant status labels.
 void AppController::resetDeviceIdentity()
 {
     bool deviceChanged = false;
@@ -81,7 +114,13 @@ void AppController::resetDeviceIdentity()
         emit deviceIdChanged();
 }
 
-// Updates the selected or inferred machine type used by setup/status UI.
+// =========================================================================
+// 7. setMachineType (Internal Property Setter)
+// =========================================================================
+// Triggered by: SetupPage.qml selected machine type grid card binding (Line 127) and
+//               internally when a device ID packet is initially received over serial (defaults to "DC Motor").
+// Role: Updates the current session's machine type classification (e.g. DC Motor, Pump, Fan)
+//       and emits `machineTypeChanged()` to update dashboard labels and icons.
 void AppController::setMachineType(const QString &machineType)
 {
     const QString trimmedMachineType = machineType.trimmed();
@@ -92,7 +131,12 @@ void AppController::setMachineType(const QString &machineType)
     emit machineTypeChanged();
 }
 
-// Mirrors serial-service port changes into controller state and QML signals.
+// =========================================================================
+// 8. syncPorts (Internal Slot)
+// =========================================================================
+// Triggered by: SerialService::portsChanged signal (when a USB-to-UART bridge is plugged/unplugged)
+// Role: Emits `availablePortsChanged()` to update the ports list in the UI, and updates the active
+//       selected port to a fallback if the previous port is no longer available on the system.
 void AppController::syncPorts()
 {
     emit availablePortsChanged();
@@ -107,11 +151,15 @@ void AppController::syncPorts()
 
     if (nextPort != m_selectedPort) {
         m_selectedPort = nextPort;
-        emit selectedPortChanged();
     }
 }
 
-// Reacts to connection state changes and refreshes dependent UI properties.
+// =========================================================================
+// 9. syncConnection (Internal Slot)
+// =========================================================================
+// Triggered by: SerialService::connectedChanged signal
+// Role: Dispatches notifications to the QML frontend (connectedChanged, relearnAvailabilityChanged).
+//       If the connection was severed, it flushes live data, stops live updates, and logs the disconnection.
 void AppController::syncConnection()
 {
     if (!connected()) {
@@ -123,7 +171,14 @@ void AppController::syncConnection()
     emit relearnAvailabilityChanged();
 }
 
-// Sends the relearn UART command when connected and outside the cooldown.
+// =========================================================================
+// 10. requestRelearn (Q_INVOKABLE)
+// =========================================================================
+// Triggered by: "Relearn" ControlButton in DashboardHeaderBar.qml (Line 64 & 128)
+//               via the onRelearnClicked signal handler in Dashboard.qml (Line 56)
+// Role: Writes the ASCII character 'r' over the open serial port to trigger the STM32's
+//       on-device model retraining routine. It also triggers a 40-second cooling lockout
+//       period (updating cooldown timer values in the UI) to avoid serial transmission spam.
 void AppController::requestRelearn()
 {
     if (!connected()) {
@@ -146,7 +201,13 @@ void AppController::requestRelearn()
     emit relearnAvailabilityChanged();
 }
 
-// Counts down the relearn lockout timer and re-enables the command at zero.
+// =========================================================================
+// 11. tickRelearnCooldown (Internal Slot)
+// =========================================================================
+// Triggered by: m_relearnCooldownTimer timeout signal (once per second)
+// Role: Decrements m_relearnCooldownSeconds and fires notification signals to decrement the
+//       lockout duration shown on the "Relearn" button in the UI. Automatically stops the
+//       timer and re-enables the button when the count reaches zero.
 void AppController::tickRelearnCooldown()
 {
     if (m_relearnCooldownSeconds <= 0) {

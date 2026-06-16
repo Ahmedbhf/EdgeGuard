@@ -59,9 +59,6 @@ qt_add_qml_module(appEdgeGuard
         components/StatusTile.qml
         components/ValueCard.qml
         components/GaugeCard.qml
-        components/MetricsOverviewPanel.qml
-        components/AnomalyStatusPanel.qml
-        components/LiveChartsPanel.qml
         components/LiveTrendChart.qml
         components/FftSpectrumChart.qml
         theme/Theme.qml

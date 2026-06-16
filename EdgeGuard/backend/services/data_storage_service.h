@@ -22,7 +22,6 @@ public:
     void appendSample(const SensorSample &sample);
     void cleanOldData();
     HistoryChunk loadLast24hSamples(int limit, int offset, const QString &deviceId = QString()) const;
-    bool exportCsv(const QString &destinationPath, const QString &deviceId = QString()) const;
     // Returns the SQLite file path used for the rolling history database.
     QString storagePath() const { return m_storagePath; }
 

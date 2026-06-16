@@ -30,15 +30,25 @@ void writeCsvRow(QTextStream &stream, const QStringList &columns)
 }
 }
 
-// History storage/navigation: load chunks, export CSV, and store downsampled live samples.
-// Resets paging to the newest history chunk and reloads chart data.
+// =========================================================================
+// 1. refreshHistoryData (Q_INVOKABLE)
+// =========================================================================
+// Triggered by: "Refresh" ControlButton in HistoryPage.qml (Line 75)
+//               and automatically upon component instantiation completion (Line 50 of HistoryPage.qml)
+// Role: Resets the SQLite pagination offset `m_historyChunkOffset` to 0 (meaning the newest entries)
+//       and queries the SQLite database via `loadHistoryChunk()` to populate history charts.
 void AppController::refreshHistoryData()
 {
     m_historyChunkOffset = 0;
     loadHistoryChunk();
 }
 
-// Moves the history view one chunk older if older samples are available.
+// =========================================================================
+// 2. loadOlderHistoryChunk (Q_INVOKABLE)
+// =========================================================================
+// Triggered by: "Older" ControlButton in HistoryPage.qml (Line 81)
+// Role: Increments `m_historyChunkOffset` by 1000 (HistoryChunkSize) to shift the database window,
+//       fetching and displaying the next older page of 1000 historical samples from SQLite.
 void AppController::loadOlderHistoryChunk()
 {
     const int totalCount = m_historyData.value(QStringLiteral("totalCount")).toInt();
@@ -49,7 +59,12 @@ void AppController::loadOlderHistoryChunk()
     loadHistoryChunk();
 }
 
-// Moves the history view one chunk newer if the user is not at the latest data.
+// =========================================================================
+// 3. loadNewerHistoryChunk (Q_INVOKABLE)
+// =========================================================================
+// Triggered by: "Newer" ControlButton in HistoryPage.qml (Line 87)
+// Role: Decrements `m_historyChunkOffset` by 1000 (HistoryChunkSize) to slide the database window
+//       forward in time, fetching and displaying a newer page of 1000 historical samples.
 void AppController::loadNewerHistoryChunk()
 {
     if (m_historyChunkOffset <= 0)
@@ -59,7 +74,13 @@ void AppController::loadNewerHistoryChunk()
     loadHistoryChunk();
 }
 
-// Exports all locally stored 24-hour history samples to a CSV file.
+// =========================================================================
+// 4. exportHistoryCsv (Q_INVOKABLE)
+// =========================================================================
+// Triggered by: "Export CSV" ControlButton in HistoryPage.qml (Line 93)
+//               via the accepted callback on FileDialog (Line 58)
+// Role: Loads the complete 24-hour database records for the current device and formats them
+//       into a standard comma-separated text file (CSV), then writes it to the local disk.
 bool AppController::exportHistoryCsv(const QUrl &fileUrl)
 {
     const QString path = fileUrl.isLocalFile() ? fileUrl.toLocalFile() : fileUrl.toString();
@@ -117,7 +138,12 @@ bool AppController::exportHistoryCsv(const QUrl &fileUrl)
     return ok;
 }
 
-// Downsamples live aggregated values into the rolling SQLite history store.
+// =========================================================================
+// 5. storeHistorySample (Internal Helper)
+// =========================================================================
+// Triggered by: AppController::flushLiveData() in app_controller_live.cpp (Line 60)
+// Role: Saves averaged sensor metrics down to the local SQLite file every 250ms.
+//       Also cleanup old logs (retaining only the last 24 hours) every 20 samples.
 void AppController::storeHistorySample(double anomalyScore, double x, double y, double z, double temp)
 {
     const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
@@ -144,7 +170,13 @@ void AppController::storeHistorySample(double anomalyScore, double x, double y, 
     }
 }
 
-// Loads one paged history slice and attaches pagination metadata for QML.
+// =========================================================================
+// 6. loadHistoryChunk (Internal Helper)
+// =========================================================================
+// Triggered internally by: refreshHistoryData(), loadOlderHistoryChunk(), loadNewerHistoryChunk()
+// Role: Queries the DataStorageService for a slice of size 1000 from the SQLite database
+//       based on the active offset. It converts them to chart-ready objects, sets boundary properties
+//       for navigation indicators, and formats the descriptive page indexing range text.
 void AppController::loadHistoryChunk()
 {
     const QString deviceId = m_deviceId.trimmed();
@@ -183,7 +215,12 @@ void AppController::loadHistoryChunk()
     emit historyDataChanged();
 }
 
-// Applies parsed chart data or clears history when parsing found no samples.
+// =========================================================================
+// 7. updateHistoryData (Internal Helper)
+// =========================================================================
+// Triggered internally by: loadHistoryChunk()
+// Role: Updates the exposed properties with the newly parsed structures and triggers
+//       `historyDataChanged()` to notify QML graph elements (HistoryChart, FftSpectrumChart) to redraw.
 void AppController::updateHistoryData(const ParsedHistory &parsedHistory)
 {
     if (parsedHistory.data.isEmpty()) {
@@ -196,7 +233,12 @@ void AppController::updateHistoryData(const ParsedHistory &parsedHistory)
     emit historyDataChanged();
 }
 
-// Clears history charts and publishes a status message explaining why.
+// =========================================================================
+// 8. clearHistoryData (Internal Helper)
+// =========================================================================
+// Triggered internally by: updateHistoryData()
+// Role: Clears the historical data cache map when no records exist or query returns empty,
+//       publishing an informative status string to the UI.
 void AppController::clearHistoryData(const QString &statusText)
 {
     m_historyData.clear();

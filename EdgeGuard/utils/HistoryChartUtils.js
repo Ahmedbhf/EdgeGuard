@@ -189,26 +189,3 @@ function updateHover(chart,
         desiredY = chart.y + scenePoint.y + 12
     hoverCard.y = clamp(desiredY, 12, contentAreaHeight - hoverCard.height - 12)
 }
-
-// Apply the same visible range to the sibling history panel.
-function setPanelVisibleRange(panel, startMs, endMs) {
-    setVisibleRange(panel.xAxis,
-                    panel.yAxis,
-                    panel.points,
-                    panel.axisMinY,
-                    panel.axisMaxY,
-                    startMs,
-                    endMs)
-}
-
-// Apply one visible range to sibling history panels while skipping the source panel.
-function syncVisibleRange(startMs, endMs, sourcePanel, panels) {
-    if (!panels || panels.length === 0)
-        return
-
-    for (var i = 0; i < panels.length; ++i) {
-        var panel = panels[i]
-        if (panel && panel !== sourcePanel)
-            setPanelVisibleRange(panel, startMs, endMs)
-    }
-}
